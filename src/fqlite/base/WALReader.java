@@ -2,7 +2,7 @@ package fqlite.base;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -17,8 +17,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -67,8 +65,8 @@ public class WALReader extends Base {
 	 */
 	TreeMap<Long,LinkedList<WALFrame>> checkpoints = new TreeMap<Long,LinkedList<WALFrame>>();
 
-	/* An asynchronous channel for reading, writing, and manipulating a file. */
-	public AsynchronousFileChannel file;
+	/* An channel for reading, writing, and manipulating a file. */
+	public FileChannel file;
 
 	/* This buffer holds WAL-file in RAM */
 	ByteBuffer wal;
@@ -170,7 +168,7 @@ public class WALReader extends Base {
 
 		/* try to open the db-file in read-only mode */
 		try {
-			file = AsynchronousFileChannel.open(p, StandardOpenOption.READ);
+			file = FileChannel.open(p, StandardOpenOption.READ);
 		} catch (Exception e) {
             this.err("Cannot open WAL-file" + p.getFileName());
 			return;
@@ -184,30 +182,21 @@ public class WALReader extends Base {
 			e.printStackTrace();
 		}
 
-		/* read header of the WAL file - the first 32 bytes */
-		buffer = ByteBuffer.allocate(32);
-
-		Future<Integer> result = file.read(buffer, 0); // position = 0
-
 		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            err(e.toString());
+            if(file.size() <= 32)
+            {   
+                    info("WAL-File is empty. Skip analyzing.");
+                    return;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-		// set filepointer to begin of the file
-		buffer.flip();
-
-		try {
-			if(file.size() <= 32)
-			{	
-				    info("WAL-File is empty. Skip analyzing.");
-					return;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}	
 		
+		/* read header of the WAL file - the first 32 bytes */
+		buffer = wal.slice();
+		buffer.position(0);
+		buffer.limit(32);
+
 		/* 
 		 * WAL Header Format:
 		 * 
@@ -805,15 +794,7 @@ public class WALReader extends Base {
 		/* read the complete file into a ByteBuffer */
 		size = file.size();
 
-		wal = ByteBuffer.allocateDirect((int) size);
-
-		Future<Integer> result = file.read(wal, 0); // position = 0
-
-		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
-        }
+		wal = file.map(FileChannel.MapMode.READ_ONLY, 0, size); 
 
 		// set filepointer to begin of the file
 		wal.position(0);

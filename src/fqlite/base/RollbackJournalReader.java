@@ -2,7 +2,7 @@ package fqlite.base;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -55,7 +53,7 @@ public class RollbackJournalReader extends Base {
 	public static final String MAGIC_HEADER_STRING = "d9d505f920a163d7";
 	
 	/* An asynchronous channel for reading, writing, and manipulating a file. */
-	public AsynchronousFileChannel file;
+	public FileChannel file;
 
 	/* This buffer holds RollbackJournal-file in RAM */
 	ByteBuffer rollbackjournal;
@@ -139,7 +137,7 @@ public class RollbackJournalReader extends Base {
 
 		/* try to open the db-file in read-only mode */
 		try {
-			file = AsynchronousFileChannel.open(p, StandardOpenOption.READ);
+			file = FileChannel.open(p, StandardOpenOption.READ);
 		} catch (Exception e) {
             this.err("Cannot open RollbackJournal-file" + p.getFileName());
 			return;
@@ -188,20 +186,10 @@ public class RollbackJournalReader extends Base {
 		 */
 		
 		/* read header of the WAL file - the first 28 bytes */
-		ByteBuffer header = ByteBuffer.allocate(28);
+		ByteBuffer header = rollbackjournal.slice();
+		header.position(0);
+		header.limit(28);
 
-		
-		Future<Integer> result = file.read(header, 0); // position = 0
-
-		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            err(e.toString());
-        }
-
-		header.flip();
-		
-		
 		byte head[] = new byte[8];
 		header.get(head);
 		
@@ -547,15 +535,7 @@ public class RollbackJournalReader extends Base {
 		/* read the complete file into a ByteBuffer */
 		size = file.size();
 
-		rollbackjournal = ByteBuffer.allocateDirect((int) size);
-
-		Future<Integer> result = file.read(rollbackjournal, 0); // position = 0
-
-		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
-        }
+		rollbackjournal = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
 
 		// set filepointer to begin of the file
 		rollbackjournal.position(0);

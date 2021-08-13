@@ -4,7 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -157,7 +157,7 @@ public class Job extends Base {
 	String path;
 	
 	/* An asynchronous channel for reading, writing, and manipulating the database file. */
-	public AsynchronousFileChannel file;
+	public FileChannel file;
 	
 	/* this field represent the database encoding */
 	public static Charset db_encoding = StandardCharsets.UTF_8;
@@ -241,16 +241,8 @@ public class Job extends Base {
 		/* read the complete file into a ByteBuffer */
 		size = file.size();
 		
-		db = ByteBuffer.allocateDirect((int) size);
+		db = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
 		
-		Future<Integer> result = file.read(db, 0); // position = 0
-
-		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
-        }
-
 		// set file pointer to begin of the file
 		db.position(0);
 
@@ -268,7 +260,7 @@ public class Job extends Base {
 		 */
 
 		/* try to open the wal-file in read-only mode */
-		file = AsynchronousFileChannel.open(p, StandardOpenOption.READ);
+		file = FileChannel.open(p, StandardOpenOption.READ);
 		
 		if(null == file)
 			return null;
@@ -276,16 +268,8 @@ public class Job extends Base {
 		/* read the complete file into a ByteBuffer */
 		size = file.size();
 		
-		ByteBuffer bb = ByteBuffer.allocateDirect((int) size);
+		ByteBuffer bb = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
 		
-		Future<Integer> result = file.read(bb, 0); // position = 0
-
-		try {
-            result.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
-        }
-
 		// set file pointer to begin of the file
 		bb.position(0);
 
@@ -545,24 +529,15 @@ public class Job extends Base {
 			 */
 
 			/* try to open the db-file in read-only mode */
-			file = AsynchronousFileChannel.open(p, StandardOpenOption.READ);
+			file = FileChannel.open(p, StandardOpenOption.READ);
 
 			/** Caution!!! we read the complete file into RAM **/
 			readFileIntoBuffer();
-
+			
 			/* read header of the sqlite db - the first 100 bytes */
-			ByteBuffer buffer = ByteBuffer.allocate(100);
-
-			Future<Integer> result = file.read(buffer, 0); // position = 0
-
-			try {
-	            result.get();
-	        } catch (ExecutionException | InterruptedException e) {
-	            throw new IOException(e);
-	        }
-
-			// set filepointer to begin of the file
-			buffer.flip();
+			ByteBuffer buffer = db.slice();
+			buffer.position(0);
+			buffer.limit(100);
 
 			/* The first 100 bytes of the database file comprise the database file header. 
 			 * The database file header is divided into fields as shown by the table below. 
@@ -767,19 +742,6 @@ public class Job extends Base {
 			numberofpages = (int) (totalbytes / ps);
 
 			info("Number of pages:" + numberofpages);
-
-			/* extract schema startRegion binary file */
-
-			ByteBuffer schema = ByteBuffer.allocate(ps);
-
-			/* we use a parallel read up */
-			Future<Integer> rs = file.read(schema, 0);
-
-			try {
-	            rs.get();
-	        } catch (ExecutionException | InterruptedException e) {
-	            throw new IOException(e);
-	        }
 
 			/*******************************************************************/
 
@@ -1416,16 +1378,10 @@ public class Job extends Base {
 
 				do {
 					/* reserve space for the first/next page of the free list */
-					ByteBuffer fplist = ByteBuffer.allocate(ps);
-
-					/* read next db page of the list - sometimes there is only one */
-					Future<Integer> operation = file.read(fplist, start);
-					try {
-			            operation.get();
-			        } catch (ExecutionException | InterruptedException e) {
-			            throw new IOException(e);
-			        }
-					fplist.flip();
+				    db.position(0);
+					ByteBuffer fplist = db.slice();
+					fplist.position(start);
+					fplist.limit(start + ps);
 
 					// next (possible) freepage list offset or 0xh00000000 + number of entries
 					// example : 00 00 15 3C | 00 00 02 2B
@@ -2008,17 +1964,13 @@ public class Job extends Base {
 		}
 		
 		
-		ByteBuffer pageType = ByteBuffer.allocate(1);
+		
 		// first two bytes of page
-		Future<Integer> type = file.read(pageType, offset); 		
-		try {
-            type.get();
-        } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
-        }
+		db.position(offset);
+		byte pageType = db.get(); 		
 
 		/* check type of the page by reading the first two bytes */
-		int typ = Auxiliary.getPageType(Auxiliary.bytesToHex(pageType.array()));
+		int typ = Auxiliary.getPageType(Auxiliary.bytesToHex(new byte [] { pageType } ));
 
 		/* not supported yet */
 		if (typ == 2) 
@@ -2030,15 +1982,11 @@ public class Job extends Base {
 		else if (typ == 12) {
 			debug("page number " + root + " is a interior data page ");
 
-			ByteBuffer rightChildptr = ByteBuffer.allocate(4);
+			byte [] rightChildByteArray = new byte[4];
+			db.position(offset + 8);
+			db.get(rightChildByteArray);
+			ByteBuffer rightChildptr = ByteBuffer.wrap(rightChildByteArray);
 			
-			Future<Integer> child = file.read(rightChildptr, offset + 8); // offset 8-11 of an internal page are used
-																		  // for rightmost child page number
-			try {
-	            child.get();
-	        } catch (ExecutionException | InterruptedException e) {
-	            throw new IOException(e);
-	        }
 			/* recursive */
 			rightChildptr.position(0);
 			exploreBTree(rightChildptr.getInt(), td);

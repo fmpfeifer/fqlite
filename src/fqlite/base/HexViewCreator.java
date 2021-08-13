@@ -2,9 +2,7 @@ package fqlite.base;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.nio.channels.FileChannel;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -28,7 +26,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	String soffset = "";
 	String filename = "";
 	int width = 0;
-    AsynchronousFileChannel file;
+    FileChannel file;
     int type = 0;
 	
 	Job job;
@@ -42,7 +40,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 * @param filename
 	 * @param type
 	 */
-	public HexViewCreator(Job job, TreePath path, AsynchronousFileChannel file, String filename, int type) {
+	public HexViewCreator(Job job, TreePath path, FileChannel file, String filename, int type) {
 		super();
 		this.job = job;
 		this.path = path;
@@ -166,16 +164,8 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 		/* read the complete file into a ByteBuffer */
 		long size = file.size();
 		
-		ByteBuffer db = ByteBuffer.allocateDirect((int) size);
+		ByteBuffer db = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
 		
-		Future<Integer> result = file.read(db, 0); // position = 0
-
-		try {
-		    result.get();
-		} catch (ExecutionException | InterruptedException e) {
-		    throw new IOException(e);
-		}
-
 		// set filepointer to begin of the file
 		db.position(0);
 
