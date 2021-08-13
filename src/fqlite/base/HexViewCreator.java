@@ -3,6 +3,7 @@ package fqlite.base;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.swing.SwingUtilities;
@@ -169,9 +170,10 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 		
 		Future<Integer> result = file.read(db, 0); // position = 0
 
-		while (!result.isDone()) {
-
-			// we can do something in between or we can do nothing ;-).
+		try {
+		    result.get();
+		} catch (ExecutionException | InterruptedException e) {
+		    throw new IOException(e);
 		}
 
 		// set filepointer to begin of the file

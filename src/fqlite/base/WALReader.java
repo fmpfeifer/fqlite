@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.swing.SwingUtilities;
@@ -188,10 +189,11 @@ public class WALReader extends Base {
 
 		Future<Integer> result = file.read(buffer, 0); // position = 0
 
-		while (!result.isDone()) {
-
-			// we can do something in between or just wait ;-).
-		}
+		try {
+            result.get();
+        } catch (ExecutionException | InterruptedException e) {
+            err(e.toString());
+        }
 
 		// set filepointer to begin of the file
 		buffer.flip();
@@ -807,10 +809,11 @@ public class WALReader extends Base {
 
 		Future<Integer> result = file.read(wal, 0); // position = 0
 
-		while (!result.isDone()) {
-
-			// we can do something in between or we can do nothing ;-).
-		}
+		try {
+            result.get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException(e);
+        }
 
 		// set filepointer to begin of the file
 		wal.position(0);

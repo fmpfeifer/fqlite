@@ -244,10 +244,11 @@ public class Job extends Base {
 		
 		Future<Integer> result = file.read(db, 0); // position = 0
 
-		while (!result.isDone()) {
-
-			// we can do something in between or we can do nothing ;-).
-		}
+		try {
+            result.get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException(e);
+        }
 
 		// set file pointer to begin of the file
 		db.position(0);
@@ -278,10 +279,11 @@ public class Job extends Base {
 		
 		Future<Integer> result = file.read(bb, 0); // position = 0
 
-		while (!result.isDone()) {
-
-			// we can do something in between or we can do nothing ;-).
-		}
+		try {
+            result.get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException(e);
+        }
 
 		// set file pointer to begin of the file
 		bb.position(0);
@@ -552,10 +554,11 @@ public class Job extends Base {
 
 			Future<Integer> result = file.read(buffer, 0); // position = 0
 
-			while (!result.isDone()) {
-
-				// we can do something in between or we just wait ;-).
-			}
+			try {
+	            result.get();
+	        } catch (ExecutionException | InterruptedException e) {
+	            throw new IOException(e);
+	        }
 
 			// set filepointer to begin of the file
 			buffer.flip();
@@ -771,10 +774,11 @@ public class Job extends Base {
 			/* we use a parallel read up */
 			Future<Integer> rs = file.read(schema, 0);
 
-			while (!rs.isDone()) {
-
-				// we can drink a cup of coffee in between or just wait ;-).
-			}
+			try {
+	            rs.get();
+	        } catch (ExecutionException | InterruptedException e) {
+	            throw new IOException(e);
+	        }
 
 			/*******************************************************************/
 
@@ -1415,13 +1419,11 @@ public class Job extends Base {
 
 					/* read next db page of the list - sometimes there is only one */
 					Future<Integer> operation = file.read(fplist, start);
-					while (!operation.isDone()) {
-						try {
-							TimeUnit.MILLISECONDS.sleep(1);
-						} catch (InterruptedException err) {
-							err.printStackTrace();
-						}
-					}
+					try {
+			            operation.get();
+			        } catch (ExecutionException | InterruptedException e) {
+			            throw new IOException(e);
+			        }
 					fplist.flip();
 
 					// next (possible) freepage list offset or 0xh00000000 + number of entries
@@ -2009,8 +2011,11 @@ public class Job extends Base {
 		ByteBuffer pageType = ByteBuffer.allocate(1);
 		// first two bytes of page
 		Future<Integer> type = file.read(pageType, offset); 		
-		while (!type.isDone()) {
-		}
+		try {
+            type.get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException(e);
+        }
 
 		/* check type of the page by reading the first two bytes */
 		int typ = Auxiliary.getPageType(Auxiliary.bytesToHex(pageType.array()));
@@ -2029,8 +2034,11 @@ public class Job extends Base {
 			
 			Future<Integer> child = file.read(rightChildptr, offset + 8); // offset 8-11 of an internal page are used
 																		  // for rightmost child page number
-			while (!child.isDone()) {
-			}
+			try {
+	            child.get();
+	        } catch (ExecutionException | InterruptedException e) {
+	            throw new IOException(e);
+	        }
 			/* recursive */
 			rightChildptr.position(0);
 			exploreBTree(rightChildptr.getInt(), td);
