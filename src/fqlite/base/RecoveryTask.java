@@ -104,7 +104,7 @@ public class RecoveryTask extends Base implements Runnable {
 				/* was page dropped ? */
 				if (checksum == 0)
 				{
-					System.out.println(" DROPPED PAGE !!!");
+					info(" DROPPED PAGE !!!");
 					/* no overflow page -> carve for data records - we do our best! ;-)*/
 					carve(content,null);
 				}
@@ -277,7 +277,7 @@ public class RecoveryTask extends Base implements Runnable {
 	                            vrow.append("\n");
                             	job.ll.add(vrow.toString());
 
-    							System.out.println(vrow);
+    							info(vrow.toString());
     							
     							entries--;
 	                            
@@ -506,7 +506,7 @@ public class RecoveryTask extends Base implements Runnable {
 		
 		List<Gap> gaps = findGaps();
 
-		System.out.println("gaps.size()" + gaps.size());
+		info("gaps.size()" + gaps.size());
 		if (gaps.size() == 0)
 		{
 			debug("no gaps anymore. Stopp search");

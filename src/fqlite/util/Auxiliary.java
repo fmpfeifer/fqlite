@@ -41,8 +41,7 @@ public class Auxiliary extends Base {
 	public static final String OVERFLOWPAGE = "00";
 	
 	final protected static char[] hexArray = "0123456789abcdef".toCharArray();
-
-
+	
 	public Job job;
 
 	/**
@@ -635,9 +634,9 @@ public class Auxiliary extends Base {
 				if (null != extended)
 					System.arraycopy(extended, 0, c, so - phl, pll - so);
 			} catch (ArrayIndexOutOfBoundsException err) {
-				System.out.println("Error IndexOutOfBounds");
+				err("Error IndexOutOfBounds");
 			} catch (NullPointerException err2) {
-				System.out.println("Error NullPointer in ");
+				err("Error NullPointer in ");
 			}
 
 			ByteBuffer bf = ByteBuffer.wrap(c);
@@ -657,7 +656,7 @@ public class Auxiliary extends Base {
 				byte[] value = new byte[en.length];
 
 				if ((bf.limit() - bf.position()) < value.length) {
-					System.out.println(
+					info(
 							" Bufferunderflow " + (bf.limit() - bf.position()) + " is lower than" + value.length);
 				}
 
@@ -711,7 +710,7 @@ public class Auxiliary extends Base {
 				try {
 					buffer.get(value);
 				} catch (BufferUnderflowException err) {
-					System.out.println("readRecord():: no overflow ERROR " + err);
+					info("readRecord():: no overflow ERROR " + err);
 					// err.printStackTrace();
 					return null;
 				}
@@ -953,7 +952,7 @@ public class Auxiliary extends Base {
 			buffer.get(header);
 
 		} catch (Exception err) {
-			System.out.println("ERROR " + err.toString());
+			err("ERROR " + err.toString());
 		}
 
 		String sheader = Auxiliary.bytesToHex(header);
@@ -979,7 +978,7 @@ public class Auxiliary extends Base {
 			buffer.get(header);
 
 		} catch (Exception err) {
-			System.out.println("Auxiliary::ERROR " + err.toString());
+			err("Auxiliary::ERROR " + err.toString());
 			return null;
 		}
 
@@ -1234,7 +1233,7 @@ public class Auxiliary extends Base {
 		/* assign the new matching pattern with the index descriptor object */
 		id.hpattern = pattern;
 
-		System.out.println("addHeaderPattern2Idx() :: PATTTERN: " + pattern);
+		Logger.out.info("addHeaderPattern2Idx() :: PATTTERN: " + pattern);
 
 	}
 
@@ -1351,12 +1350,12 @@ public class Auxiliary extends Base {
 	}
 
 	public static void printStackTrace() {
-		System.out.println("Printing stack trace:");
+		Logger.out.info("Printing stack trace:");
 
 		StackTraceElement[] elements = Thread.currentThread().getStackTrace();
 		for (int i = 1; i < elements.length; i++) {
 			StackTraceElement s = elements[i];
-			System.out.println("\tat " + s.getClassName() + "." + s.getMethodName() + "(" + s.getFileName() + ":"
+			Logger.out.info("\tat " + s.getClassName() + "." + s.getMethodName() + "(" + s.getFileName() + ":"
 					+ s.getLineNumber() + ")");
 		}
 	}
@@ -1369,7 +1368,7 @@ public class Auxiliary extends Base {
 	 * @return the number of bytes including header and payload
 	 */
 	public static int computePayloadLengthS(String header) {
-		System.out.println("HEADER" + header);
+	    Logger.out.info("HEADER" + header);
 		byte[] bcol = Auxiliary.decode(header);
 		int[] columns = Auxiliary.readVarInt(bcol);
 		int pll = 0;
@@ -1494,6 +1493,5 @@ public class Auxiliary extends Base {
     {
     	 return Auxiliary.bytesToHex(new byte[] {(byte)(i >>> 24),(byte)(i >>> 16),(byte)(i >>> 8), (byte)i});
     }
-    
     
 }

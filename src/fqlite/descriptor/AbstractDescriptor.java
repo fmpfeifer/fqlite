@@ -1,5 +1,7 @@
 package fqlite.descriptor;
 
+import fqlite.base.Base;
+
 /**
  * An abstract base class for possible database 
  * objects like index,table, trigger or view.
@@ -10,7 +12,7 @@ package fqlite.descriptor;
  * @author pawlaszc
  *
  */
-public abstract class AbstractDescriptor {
+public abstract class AbstractDescriptor extends Base {
 
 	public boolean ROWID = true;
 	

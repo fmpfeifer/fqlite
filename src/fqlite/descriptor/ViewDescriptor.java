@@ -50,8 +50,8 @@ public class ViewDescriptor extends AbstractDescriptor {
 	 * 
 	 **/
 	public void printTableDefinition() {
-		System.out.println("TABLE" + viewname);
-		System.out.println("COLUMNS: " + columnnames);
+		info("TABLE" + viewname);
+		info("COLUMNS: " + columnnames);
 	}
 
 	

@@ -162,7 +162,7 @@ public class WALReader extends Base {
 		
 		Path p = Paths.get(path);
 
-		System.out.println("parse WAL-File");
+		info("parse WAL-File");
 		/*
 		 * we have to do this before we open the database because of the concurrent
 		 * access
@@ -487,7 +487,7 @@ public class WALReader extends Base {
 			Integer checksum = buffer.getInt();
 			/* was page dropped ? */
 			if (checksum == 0) {
-				System.out.println(" DROPPED PAGE !!!");
+				info(" DROPPED PAGE !!!");
 				/* no overflow page -> carve for data records - we do our best! ;-) */
 				carve(content, null);
 			}
@@ -557,7 +557,7 @@ public class WALReader extends Base {
 
 		int headerend = 8 + (cp * 2);
 		visit.set(0, headerend);
-		System.out.println("headerend:" + headerend);
+		info("headerend:" + headerend);
 
 		/***************************************************************
 		 * STEP 2:
@@ -1077,9 +1077,9 @@ public class WALReader extends Base {
 		for (int i = 0; i < cc; i++) {
 			Object child = model.getChild(o, i);
 			if (model.isLeaf(child))
-				System.out.println(child.toString());
+				info(child.toString());
 			else {
-				System.out.print(child.toString() + "--");
+				info(child.toString() + "--");
 				walk(model, child);
 			}
 		}

@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import fqlite.base.Base;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.HeaderPattern;
@@ -35,7 +36,7 @@ import fqlite.util.Logger;
  */
 
 @SuppressWarnings("deprecation")
-public class SimpleSQLiteParser {
+public class SimpleSQLiteParser extends Base {
 
 	/* determine data type */
 
@@ -170,21 +171,21 @@ public class SimpleSQLiteParser {
         		tablename = trim(tablename);
         		if (tablename.length()==0)
         			tablename = "<no name>";
-        		System.out.println("Tablename "  + tablename);
+        		info("Tablename "  + tablename);
         	}
         	
         	
         	@Override public void enterModule_name(SQLiteParser.Module_nameContext ctx) 
         	{
         		 modulname = ctx.getText();
-         		 System.out.println(" name " + modulname);
+         		 info(" name " + modulname);
          		 if (modulname.equals("fts4")|| modulname.equals("fts3"))
          		 {
-         			 System.out.println("Found FreeTextSearch Module (fts3/4)");
+         			 info("Found FreeTextSearch Module (fts3/4)");
          		 }
          		 else if (modulname.equals("rtree"))
          		 {
-         			 System.out.println("Found rtree Module");
+         			 info("Found rtree Module");
 
          		 } 
          		 
@@ -194,7 +195,7 @@ public class SimpleSQLiteParser {
         	@Override public void enterModule_argument(SQLiteParser.Module_argumentContext ctx) 
         	{ 
         		String modulargument = ctx.getText();
-        		System.out.println(" arg " + modulargument);
+        		info(" arg " + modulargument);
         		
         		/* RTree Modul ?*/
         		if(modulname.equals("rtree"))
@@ -248,7 +249,7 @@ public class SimpleSQLiteParser {
 		
     		idxname = ctx.getText(); //"_IDX_" + ctx.getText();
         	
-    		System.out.println("INDEX " + idxname);
+    		info("INDEX " + idxname);
         }  
     	
     	
@@ -262,7 +263,7 @@ public class SimpleSQLiteParser {
     		String colname = ctx.getText();
     		colname = trim(colname);
     		colnames.add(colname);
-    		System.out.println("Columnname " + colname);		
+    		info("Columnname " + colname);		
     	}
 
     	@Override public void enterTable_name(SQLiteParser.Table_nameContext ctx) 
@@ -271,7 +272,7 @@ public class SimpleSQLiteParser {
     		tablename = trim(tablename);
     		if (tablename.length()==0)
     			tablename = "<no name>";
-    		System.out.println("Tablename "  + tablename);
+    		info("Tablename "  + tablename);
     	}
     	
     	
@@ -314,7 +315,7 @@ public class SimpleSQLiteParser {
         		tablename = trim(tablename);
         		if (tablename.length()==0)
         			tablename = "<no name>";
-        		System.out.println("Tablename "  + tablename);
+        		info("Tablename "  + tablename);
         	}
         	
         	boolean tblconstraint = false;
@@ -336,18 +337,18 @@ public class SimpleSQLiteParser {
         		
         		String colname = ctx.getText();
         		
-        		System.out.println("enterColumn_name()::colname =" + colname);
+        		info("enterColumn_name()::colname =" + colname);
         		
         		if (!colname.equals("CONSTRAINT"))
         		{
         			colname = trim(colname);
         			colnames.add(colname);
         			
-        			System.out.println("Columnname " + colname);
+        			info("Columnname " + colname);
         		}
         		else
         		{
-        			System.out.println("aha!!!");
+        			info("aha!!!");
         			tblconstraint = true;
         		}	
         		
@@ -362,13 +363,13 @@ public class SimpleSQLiteParser {
         	 */
         	@Override public void enterForeign_table(SQLiteParser.Foreign_tableContext ctx)
         	{
-        		System.out.println("Enter foreign Table!!!");
+        		info("Enter foreign Table!!!");
         		inForeignTable = true;
         	}
         	
         	@Override public void exitForeign_table(SQLiteParser.Foreign_tableContext ctx)
         	{
-        		System.out.println("Exit foreign Table!!!");
+        		info("Exit foreign Table!!!");
         		
         	}
         	
@@ -381,19 +382,19 @@ public class SimpleSQLiteParser {
         		/* the CONSTRAINT key word is mistakenly identified a type */
         		if (tblconstraint)
         		{
-        			System.out.println("Table Constraint: " + value);
+        			info("Table Constraint: " + value);
         			tableconstraint.add(value);
         			tblconstraint = false;
         		}
         		else
         		{
 	        		sqltypes.add(value);
-	        		System.out.println("SQLType::" + value);
+	        		info("SQLType::" + value);
 	        		String type = getType(value);
 	        		if (type.length()>0)
 	        		{
 	        			coltypes.add(type);
-	        			System.out.println("Typename " + trim(type));
+	        			info("Typename " + trim(type));
 	            		
 	        		}
         		}
@@ -402,12 +403,12 @@ public class SimpleSQLiteParser {
         	
         	@Override public void enterKeyword(SQLiteParser.KeywordContext ctx)
         	{
-        		System.out.println("Enter keyword ");
+        		info("Enter keyword ");
         	}
         	
         	@Override public void exitKeyword(SQLiteParser.KeywordContext ctx)
         	{
-        		System.out.println("Exit keyword ");
+        		info("Exit keyword ");
             }
         	
         
@@ -426,7 +427,7 @@ public class SimpleSQLiteParser {
         	{ 
         		String constraint = ctx.getText();
         		
-        		System.out.println("Columnconstraint " + constraint);
+        		info("Columnconstraint " + constraint);
         		cons += constraint + " ";
         	}
         	
@@ -434,7 +435,7 @@ public class SimpleSQLiteParser {
         	
         	@Override public void exitColumn_def(SQLiteParser.Column_defContext ctx) 
         	{ 
-       	        System.out.println("adding cons:" + cons);
+       	        info("adding cons:" + cons);
         		colconstraints.add(cons);
         		column++;
         	}
@@ -444,7 +445,7 @@ public class SimpleSQLiteParser {
         	@Override public void enterTable_constraint(SQLiteParser.Table_constraintContext ctx) 
         	{ 
         		isTableConstraint = true;
-        		System.out.println("Table_constraint :: " +ctx.getText());
+        		info("Table_constraint :: " +ctx.getText());
         		tableconstraint.add(ctx.getText());
         	}
 	
@@ -495,7 +496,7 @@ public class SimpleSQLiteParser {
 	        		
     	
         		tds = new TableDescriptor(tablename,stmt,sqltypes,coltypes,colnames,colconstraints,tableconstraint,pattern,stmt.contains("WITHOUT ROWID"));
-        		System.out.println("PATTTERN: " + pattern);
+        		info("PATTTERN: " + pattern);
         		
         	}
         	
@@ -516,7 +517,7 @@ public class SimpleSQLiteParser {
 	{
 		String type="";
 		
-		System.out.println("Datentyp" + s);
+		info("Datentyp" + s);
 		
 		if (s.startsWith("TIMESTAMP"))
 		{

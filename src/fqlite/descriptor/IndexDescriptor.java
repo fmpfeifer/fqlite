@@ -43,7 +43,7 @@ public class IndexDescriptor extends AbstractDescriptor{
 			 * including this byte
 			 */
 			int headerlength = values[0];
-			System.out.println(headerlength);
+			info(Integer.toString(headerlength));
 			
 			boolean valid = true;
 	
@@ -215,8 +215,8 @@ public class IndexDescriptor extends AbstractDescriptor{
 	 * 
 	 **/
 	public void printIndexDefinition() {
-		System.out.println("Index" + idxname);
-		System.out.println("COLUMNS: " + columnnames);
+		info("Index" + idxname);
+		info("COLUMNS: " + columnnames);
 	}
 
 	@Override

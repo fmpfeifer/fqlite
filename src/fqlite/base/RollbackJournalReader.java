@@ -156,7 +156,7 @@ public class RollbackJournalReader extends Base {
 		try {
 			if(file.size() <= 512)
 			{	
-				System.out.println("RollbackJournal-File is empty. Skip analyzing.");
+				info("RollbackJournal-File is empty. Skip analyzing.");
 					return;
 			}
 		} catch (IOException e) {
@@ -326,7 +326,7 @@ public class RollbackJournalReader extends Base {
 			Integer checksum = buffer.getInt();
 			/* was page dropped ? */
 			if (checksum == 0) {
-				System.out.println(" DROPPED PAGE !!!");
+				info(" DROPPED PAGE !!!");
 				/* no overflow page -> carve for data records - we do our best! ;-) */
 				carve(content, null);
 			}
@@ -453,7 +453,7 @@ public class RollbackJournalReader extends Base {
 						 * we use the xxx_node shadow component to construct the virtual component
 						 */
 						String BLOB = rc.substring(p1);
-						System.out.println(BLOB);
+						info(BLOB);
 
 						/*
 						 * skip the first information -> go directly to the 5th element of the data
@@ -495,7 +495,7 @@ public class RollbackJournalReader extends Base {
 							vrow.append("\n");
 							output.add(vrow.toString());
 
-							System.out.println(vrow);
+							info(vrow.toString());
 
 							entries--;
 

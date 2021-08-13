@@ -41,6 +41,7 @@ import fqlite.ui.RollbackPropertyPanel;
 import fqlite.ui.WALPropertyPanel;
 import fqlite.util.Auxiliary;
 import fqlite.util.ByteSeqSearcher;
+import fqlite.util.Logger;
 
 
 /*
@@ -950,7 +951,7 @@ public class Job extends Base {
 					bb.get(mheader);
 					String headerStr = Auxiliary.bytesToHex(mheader);
 	
-					System.out.println(headerStr);
+					Logger.out.info(headerStr);
 	
 					/**
 					 * case 3: seems to be a dropped index data set
@@ -973,7 +974,7 @@ public class Job extends Base {
 						if (round == 1)
 						{	
 							bbb = readPageWithNumber(pagenumber, ps);
-							System.out.println("starthere 1st round " + starthere);
+							Logger.out.info("starthere 1st round " + starthere);
 
 						}
 						else
@@ -1000,13 +1001,13 @@ public class Job extends Base {
 							bb.get(pp,0,ps);
 							bbb = ByteBuffer.wrap(pp);
 							
-							System.out.println("index match " + index2);
+							Logger.out.info("index match " + index2);
 
-							System.out.println("ReaderWAL is true -> page begin offset " + pagebegin );
+							Logger.out.info("ReaderWAL is true -> page begin offset " + pagebegin );
 
-							System.out.println("ReaderWAL is true -> offset in page " + starthere);
+							Logger.out.info("ReaderWAL is true -> offset in page " + starthere);
 							
-							System.out.println(" index - starthere - page begin " + (index2 - starthere - pagebegin));
+							Logger.out.info(" index - starthere - page begin " + (index2 - starthere - pagebegin));
 
 						}
 						
@@ -1061,13 +1062,13 @@ public class Job extends Base {
 							bb.get(pp,0,ps);
 							bbb = ByteBuffer.wrap(pp);
 							
-							System.out.println("index match " + index2);
+							Logger.out.info("index match " + index2);
 
-							System.out.println("ReaderWAL is true -> page begin offset " + pagebegin );
+							Logger.out.info("ReaderWAL is true -> page begin offset " + pagebegin );
 
-							System.out.println("ReaderWAL is true -> offset in page " + starthere);
+							Logger.out.info("ReaderWAL is true -> offset in page " + starthere);
 							
-							System.out.println(" index - starthere - page begin " + (index2 - starthere - pagebegin));
+							Logger.out.info(" index - starthere - page begin " + (index2 - starthere - pagebegin));
 						}
 						
 						if (db_encoding == StandardCharsets.UTF_8)
@@ -1086,7 +1087,7 @@ public class Job extends Base {
 			
 				
 				/* Is there a table schema definition inside the main database file ???? */
-				System.out.println("headers:::: " + headers.size());
+				Logger.out.info("headers:::: " + headers.size());
 				
 				if(headers.size()==0 && this.readWAL ==true)
 				{
@@ -1138,7 +1139,7 @@ public class Job extends Base {
 									int match = tdnames.indexOf(idname.get(z));
 									String type = td.getColumntypes().get(match);
 									id.columntypes.add(type);
-									System.out.println("ADDING IDX TYPE::: " + type + " FOR TABLE " + td.tblname + " INDEx "
+									Logger.out.info("ADDING IDX TYPE::: " + type + " FOR TABLE " + td.tblname + " INDEx "
 											+ id.idxname);
 								}
 								catch(Exception err)
@@ -1245,7 +1246,7 @@ public class Job extends Base {
 					}
 
 					if (null != lastpath) {
-						System.out.println("Expend Path" + lastpath);
+						Logger.out.info("Expend Path" + lastpath);
 						GUI.tree.expandPath(lastpath);
 					}
 				}
@@ -1274,7 +1275,7 @@ public class Job extends Base {
 				/* update treeview in UI - skip this step in console modus */
 				if (null != gui) {
 					TreePath path = gui.add_table(this, id.idxname, id.columnnames, id.columntypes, null, false, false,1);
-					System.out.println("id.idxname " + id.idxname);
+					Logger.out.info("id.idxname " + id.idxname);
 					guitab.put(id.idxname, path);
 					lastpath = path;
 
@@ -1372,7 +1373,7 @@ public class Job extends Base {
 			info("Total number of free list pages " + Auxiliary.bytesToHex(freepageno));
 			ByteBuffer no = ByteBuffer.wrap(freepageno);
 			fpnumber = no.getInt();
-			System.out.println(" no " + fpnumber);
+			Logger.out.info(" no " + fpnumber);
 
 			/*******************************************************************/
 
@@ -1401,7 +1402,7 @@ public class Job extends Base {
 				info("first:: " + start + " 0hx " + Integer.toHexString(start));
 
 				long startfp = System.currentTimeMillis();
-				System.out.println("Start free page recovery .....");
+				Logger.out.info("Start free page recovery .....");
 
 				// seeking file pointer to the first free page entry
 
@@ -1566,7 +1567,7 @@ public class Job extends Base {
 
 				if (readRollbackJournal) {
 					/* the readWAL option is enabled -> check the WAL-file too */
-					System.out.println(" RollbackJournal-File " + this.rollbackjournalpath);
+					Logger.out.info(" RollbackJournal-File " + this.rollbackjournalpath);
 					rol = new RollbackJournalReader(rollbackjournalpath, this);
 					rol.ps = this.ps;
 					/* start parsing Rollbackjournal-file */
@@ -1575,7 +1576,7 @@ public class Job extends Base {
 				}
 				else if (readWAL) {
 					/* the readWAL option is enabled -> check the WAL-file too */
-					System.out.println(" WAL-File " + walpath);
+					Logger.out.info(" WAL-File " + walpath);
 					WALReader wal = new WALReader(walpath, this);
 					/* start parsing WAL-file */
 					wal.parse();
@@ -1599,8 +1600,8 @@ public class Job extends Base {
 	 * @param lines
 	 */
 	public void writeResultsToFile(String filename, String [] lines) {
-		System.out.println("Write results to file...");
-		System.out.println("Number of records recovered: " + ll.size());
+		Logger.out.info("Write results to file...");
+		Logger.out.info("Number of records recovered: " + ll.size());
 
 		if (null == filename) {
 			Path dbfilename = Paths.get(path);
@@ -1641,7 +1642,7 @@ public class Job extends Base {
 	private void readSchema(ByteBuffer bb, int index, String headerStr, boolean readWAL) throws IOException
 	{
 		
-		System.out.println("Entering readSchema()");
+		Logger.out.info("Entering readSchema()");
 		
 		/* we need a utility method for parsing the Mastertable */
 		Auxiliary c = new Auxiliary(this);
@@ -1680,13 +1681,13 @@ public class Job extends Base {
 			bb.get(pp,0,ps);
 			bbb = ByteBuffer.wrap(pp);
 			
-			System.out.println("index match " + index);
+			Logger.out.info("index match " + index);
 
-			System.out.println("ReaderWAL is true -> page begin offset " + pagebegin );
+			Logger.out.info("ReaderWAL is true -> page begin offset " + pagebegin );
 
-			System.out.println("ReaderWAL is true -> offset in page " + starthere);
+			Logger.out.info("ReaderWAL is true -> offset in page " + starthere);
 			
-			System.out.println(" index - starthere - page begin " + (index - starthere - pagebegin));
+			Logger.out.info(" index - starthere - page begin " + (index - starthere - pagebegin));
 		}
 		
 		/* start reading the schema string from the correct position */
@@ -1697,7 +1698,7 @@ public class Job extends Base {
 		else if (db_encoding == StandardCharsets.UTF_16BE)
 			c.readMasterTableRecord(this, starthere - 18, bbb, headerStr);
 	
-		System.out.println("Leave readSchema()");
+		Logger.out.info("Leave readSchema()");
 
 	}
 
@@ -1705,7 +1706,7 @@ public class Job extends Base {
 	 *  Translate a given ByteBuffer to a String. 
 	 *  
 	 */
-	public static String decode(ByteBuffer tblb) {
+	public String decode(ByteBuffer tblb) {
 
 		/* Attention: we need to use the correct encoding!!! */
 		try {
@@ -1740,7 +1741,7 @@ public class Job extends Base {
 			return schemastr;
 
 		} catch (Exception err) {
-			System.out.println(err);
+			Logger.out.err(err.toString());
 		}
 
 		return "";
@@ -1798,7 +1799,7 @@ public class Job extends Base {
 		/* start executing the work threads */
 		for (Worker w : worker)
 		{	
-			System.out.println(" Start worker thread" + c++);
+			Logger.out.info(" Start worker thread" + c++);
 			/* add new task to executor queue */
 			//executor.execute(w);			
             w.run();
@@ -1831,14 +1832,14 @@ public class Job extends Base {
 		        System.err.println("cancel non-finished tasks");
 		    }
 		    executor.shutdownNow();
-		    System.out.println("shutdown finished");
+		    Logger.out.info("shutdown finished");
 		}
 		
 		// wait for Threads to finish the tasks
 		while (runningTasks.intValue() != 0) {
 			try {
 				TimeUnit.MILLISECONDS.sleep(2000);
-				System.out.println("warte....");
+				Logger.out.info("warte....");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -1884,22 +1885,21 @@ public class Job extends Base {
 		else
 			return;
 	}
-
+	
 	public void info(String message) {
 		if (gui != null)
 			gui.doLog(message);
 		else
-			System.out.println(message);
+			super.info(message);
 	}
 
 	public void err(String message) {
 		if (gui != null)
 			JOptionPane.showMessageDialog(gui, message);
 		else
-			System.err.println("ERROR: " + message);
+			super.err("ERROR: " + message);
 	}
-
-
+	
 	/**
 	 *	 
 	 */
@@ -1925,7 +1925,7 @@ public class Job extends Base {
 			e.printStackTrace();
 		}
 		long end = System.currentTimeMillis();
-		System.out.println("Duration in ms: " + (end - start));
+		Logger.out.info("Duration in ms: " + (end - start));
 
 		return hashcode;
 	}
@@ -1948,7 +1948,7 @@ public class Job extends Base {
 		if ((offset > db.limit()) || (offset < 0))
 		{
 			
-			System.out.println(" offset greater than file size ?!" + offset + " > " + db.limit());
+			Logger.out.info(" offset greater than file size ?!" + offset + " > " + db.limit());
 			Auxiliary.printStackTrace();
 			
 			

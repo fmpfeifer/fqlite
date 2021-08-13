@@ -57,7 +57,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 			 * including this byte
 			 */
 			int headerlength = values[0];
-			System.out.println(headerlength);
+			info(Integer.toString(headerlength));
 			
 			boolean valid = true;
 	
@@ -183,7 +183,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 		for(int i=0; i < names.size(); i++)
 		{
 			if (null != constraints)
-				System.out.println("tname" + tblname);
+				info("tname" + tblname);
 			
 			if (tblname.equals("__UNASSIGNED"))
 				break;
@@ -206,7 +206,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 				Matcher m = Pattern.compile("PRIMARYKEY\\((.*?)\\)").matcher(constraint);
 				while (m.find()) {
 					String key = m.group(1);
-				    System.out.println("Table Constraint Key "  + key);
+				    info("Table Constraint Key "  + key);
 				    if (!key.contains(","))
 				    {
 				    	// simple key like 'id'
@@ -414,8 +414,8 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	 * 
 	 **/
 	public void printTableDefinition() {
-		System.out.println("TABLE" + tblname);
-		System.out.println("COLUMNS: " + columnnames);
+		info("TABLE" + tblname);
+		info("COLUMNS: " + columnnames);
 	}
 
 	@Override

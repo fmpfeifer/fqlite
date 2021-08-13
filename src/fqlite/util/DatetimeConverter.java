@@ -16,6 +16,8 @@ public class DatetimeConverter{
 
 	final static long UNIX_MIN_DATE = 1262304000000L; // 01.01.2010 
 	final static long UNIX_MAX_DATE = 2524608000000L; // 01.01.2050  
+	
+	private static Logger logger = new Logger();
 		
 	/**
 	 * Core Data is a data storage framework to manage objects in iOS and OS X applications.
@@ -31,7 +33,7 @@ public class DatetimeConverter{
 	public static String isMacAbsoluteTime(double timestamp)
 	{		
 		long time = (978307200 + (long)timestamp)*1000;
-		System.out.println("isMacAbsoluteTime(): " + timestamp + " unix " + time);
+		logger.info("isMacAbsoluteTime(): " + timestamp + " unix " + time);
 	
 		
 		if (time > UNIX_MIN_DATE && time < UNIX_MAX_DATE)

@@ -765,7 +765,7 @@ public class PageReader extends Base {
 		}
 		catch(Exception err)
 		{
-			System.out.println("ERROR " + err.toString());
+			err("ERROR " + err.toString());
 		}
 		
 		debug("Header: " + Auxiliary.bytesToHex(header));
