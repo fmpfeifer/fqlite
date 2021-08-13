@@ -1,6 +1,7 @@
 package fqlite.base;
 
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -157,7 +158,7 @@ public class Job extends Base {
 	String path;
 	
 	/* An asynchronous channel for reading, writing, and manipulating the database file. */
-	public FileChannel file;
+	private FileChannel file;
 	
 	/* this field represent the database encoding */
 	public static Charset db_encoding = StandardCharsets.UTF_8;
@@ -222,12 +223,13 @@ public class Job extends Base {
 	int fphead = 0;
 	String sqliteversion = "";
 	boolean autovacuum = false;
-	long totalbytes = 0;
 	
 	/* if a page has been scanned it is marked as checked */
 	AtomicReferenceArray<Boolean> checked;
 	
 	public AtomicInteger hits = new AtomicInteger();
+	
+	private List<Closeable> resourcesToClose = new ArrayList<>();
 
 	  
 	/******************************************************************************************************/
@@ -261,6 +263,7 @@ public class Job extends Base {
 
 		/* try to open the wal-file in read-only mode */
 		file = FileChannel.open(p, StandardOpenOption.READ);
+		resourcesToClose.add(file);
 		
 		if(null == file)
 			return null;
@@ -530,6 +533,7 @@ public class Job extends Base {
 
 			/* try to open the db-file in read-only mode */
 			file = FileChannel.open(p, StandardOpenOption.READ);
+			resourcesToClose.add(file);
 
 			/** Caution!!! we read the complete file into RAM **/
 			readFileIntoBuffer();
@@ -734,7 +738,7 @@ public class Job extends Base {
 			 * get file size: Attention! We use the real file size information startRegion
 			 * the file object not the header information!
 			 */
-			totalbytes = file.size();
+			long totalbytes = file.size();
 
 			/*
 			 * dividing the number of bytes by pagesize we can compute the number of pages.
@@ -1546,6 +1550,14 @@ public class Job extends Base {
 
 			info("Error: Could not open file.");
 			System.exit(-1);
+		}
+		
+		for (Closeable c : resourcesToClose) {
+		    try {
+                c.close();
+            } catch (IOException e) {
+                err(e.toString());
+            }
 		}
 
 		return 0;
