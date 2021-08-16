@@ -100,32 +100,30 @@ public class SqliteElement {
        // bf.order(ByteOrder.BIG_ENDIAN);
 			
 		long z = result.getLong();
-			
-		//if (z > 1000000000000000L && z < 1800000000000000L)
-		//	return convertToDate(z);
-		//else
-		//	return Long.toString(z);
-		
-		String int64 = DatetimeConverter.isUnixEpoch(z);
-		if (null == int64)
-		{
-			Long.toString(z);
+					
+		if (Global.CONVERT_DATETIME) {
+    		String strDateTime = DatetimeConverter.isUnixEpoch(z);
+    		if (null != strDateTime)
+    		{
+    			return strDateTime;
+    		}
 		}
-		return int64;
+		return Long.toString(z);
 	}
 
 	final static String decodeInt64(byte[] v) {
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		long z = bf.getLong();
 
-		String int64 = DatetimeConverter.isUnixEpoch(z);
-		if (null == int64)
-		{
-			Long.toString(z);
+		if (Global.CONVERT_DATETIME) {
+    		String strDateTime = DatetimeConverter.isUnixEpoch(z);
+    		if (null != strDateTime)
+    		{
+    			return strDateTime;
+    		}
 		}
-		//if (z > 100000000000L)
-		//	return convertToDate(z);
-		return int64;
+		
+		return Long.toString(z);
 	}
 
 	final static String convertToDate(long value) {
@@ -143,12 +141,13 @@ public class SqliteElement {
 		//{
 			//System.out.println("MAC-Time gefunden " + d);
 		//}
-		String fp64 = DatetimeConverter.isMacAbsoluteTime(d);
-		if (null == fp64)
-			return String.format("%.8f", d);
-		// return bf.getDouble();
-		// System.out.println("Rückgabe :: " + fp64);
-		return fp64;
+		if (Global.CONVERT_DATETIME) {
+		    String strDateTime = DatetimeConverter.isMacAbsoluteTime(d);
+    		if (null != strDateTime) {
+    		    return strDateTime;
+    		}
+		}
+		return String.format("%.8f", d);
 	}
 
 	final static CharBuffer decodeString(byte[] v) {

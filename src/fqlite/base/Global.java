@@ -9,6 +9,7 @@ public class Global {
 	public static final String UNALLOCATED_SPACE = "U"; // U2318 - unallocated space
 	public static final String FQLITE_VERSION = "1.55";
 	public static final String FQLITE_RELEASEDATE = "15/07/2021";
+	public static boolean CONVERT_DATETIME = true; // Weather to convert datetime or not
 	public static int LOGLEVEL = Base.INFO;
 	public static int numberofThreads = 1;
 }
