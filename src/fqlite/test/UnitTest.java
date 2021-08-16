@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import fqlite.base.GUI;
-import fqlite.base.Job;
+import fqlite.base.JobGUI;
 
 /*
 ---------------
@@ -118,7 +118,7 @@ public class UnitTest {
 		while (it.hasNext()) {
 
 			TestCase next = it.next();
-			Job job = new Job();
+			JobGUI job = new JobGUI();
 			System.out.println("Start analysing database " + next.file);
 			int checksum = job.run(next.file);
 

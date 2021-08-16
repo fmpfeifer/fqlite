@@ -14,7 +14,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
-import fqlite.base.Job;
+import fqlite.base.JobGUI;
 
 /*
 ---------------
@@ -120,7 +120,7 @@ public class ProgressBar extends JPanel implements PropertyChangeListener {
 	 * @param parent
 	 * @param path
 	 */
-	public static void createAndShowGUI(JFrame parent, String path, Job job) {
+	public static void createAndShowGUI(JFrame parent, String path, JobGUI job) {
 		
 		// Create and set up the window.
 		dialog = new JDialog(parent);
@@ -144,8 +144,8 @@ public class ProgressBar extends JPanel implements PropertyChangeListener {
 
 class Task extends SwingWorker<Void, Void> {
 
-	Job job;
-	public Task(Job job)
+	JobGUI job;
+	public Task(JobGUI job)
 	{
 		super();
 		this.job = job;

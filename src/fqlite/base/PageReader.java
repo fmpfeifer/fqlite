@@ -31,7 +31,7 @@ public class PageReader extends Base {
 	public static final String INDEXINTERIORPAGE = "02";
 	public static final String OVERFLOWPAGE = "00";
 
-	public Job job;
+	public JobGUI job;
 
 	/**
 	 * Get the type of page. There are 4 different basic types in SQLite:  
@@ -83,7 +83,7 @@ public class PageReader extends Base {
 	 * 
 	 * @param job
 	 */
-	public PageReader(Job job) {
+	public PageReader(JobGUI job) {
 		this.job = job;
 	}
 
@@ -97,7 +97,7 @@ public class PageReader extends Base {
 	 * @param header
 	 * @throws IOException
 	 */
-	public void readMasterTableRecord(Job job, int start, ByteBuffer buffer, String header) throws IOException {
+	public void readMasterTableRecord(JobGUI job, int start, ByteBuffer buffer, String header) throws IOException {
 		
 		SqliteElement[] columns;
 
@@ -223,7 +223,7 @@ public class PageReader extends Base {
 	 * @return
 	 * @throws IOException  if something went wrong during read-up. 
 	 */
-	public CarvingResult readDeletedRecord(Job job, int start, ByteBuffer buffer, String header, BitSet bs,
+	public CarvingResult readDeletedRecord(JobGUI job, int start, ByteBuffer buffer, String header, BitSet bs,
 			int pagenumber) throws IOException {
 
 		SqliteElement[] columns;

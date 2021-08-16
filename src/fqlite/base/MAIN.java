@@ -42,7 +42,7 @@ public class MAIN {
 	 	  
 		/* create a new job-object to process database file */
 		/* Note: There is a 1:1 connection between a database file and a job object */
-		Job job = new Job();
+		JobCLI job = new JobCLI();
 
 		/*
 		 * Missing arguments ? We need at least the path and the name of the database
@@ -97,22 +97,22 @@ public class MAIN {
 					    switch(loglv){
 					    
 						    case "ERROR" :  Global.LOGLEVEL = Base.ERROR; 
-											Job.LOGLEVEL = Base.ERROR;
+											JobCLI.LOGLEVEL = Base.ERROR;
 						    				System.out.println("Loglevel was set to ERROR");
 						    			    break;  
 						    	
 						    case "INFO" :   Global.LOGLEVEL = Base.INFO; 
-						    				Job.LOGLEVEL = Base.INFO;
+						                    JobCLI.LOGLEVEL = Base.INFO;
 						    				System.out.println("Loglevel was set to INFO");
 						    				break;  
 						    	
 						    case "DEBUG" :  Global.LOGLEVEL = Base.DEBUG; 
-						    				Job.LOGLEVEL = Base.DEBUG;
+						    				JobCLI.LOGLEVEL = Base.DEBUG;
 						    				System.out.println("Loglevel was set to DEBUG");
 						    				break;  
 						    
 						    case "ALL" :  	Global.LOGLEVEL = Base.ALL;
-						    				Job.LOGLEVEL = Base.ALL;
+						    				JobCLI.LOGLEVEL = Base.ALL;
 						    				System.out.println("Loglevel was set to ALL");
 						    				break;  
 						    				

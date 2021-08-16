@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import fqlite.base.Base;
 import fqlite.base.Global;
+import fqlite.base.JobGUI;
 import fqlite.base.Job;
 import fqlite.base.SqliteElement;
 import fqlite.descriptor.IndexDescriptor;

@@ -553,7 +553,7 @@ public class GUI extends JFrame {
 					{
 						
 						if (null != no.job.wal) {
-							HexView hv = no.job.wal.hexview;
+							HexView hv = ((WALReaderGUI) no.job.wal).hexview;
 							if (null != hv)
 								hv.setVisible(true);
 							
@@ -563,7 +563,7 @@ public class GUI extends JFrame {
 					{
 						
 						if (null != no.job.rol) {
-							HexView hv = no.job.rol.hexview;
+							HexView hv = ((RollbackJournalReaderGUI) no.job.rol).hexview;
 							if (null != hv)
 								hv.setVisible(true);
 							
@@ -677,7 +677,7 @@ public class GUI extends JFrame {
 	 * @param columns
 	 * @return
 	 */
-	TreePath add_table(Job job, String tablename, List<String> columns, List<String> columntypes, List<String> PK, boolean walnode,
+	TreePath add_table(JobGUI job, String tablename, List<String> columns, List<String> columntypes, List<String> PK, boolean walnode,
 			boolean rjnode, int db_object) {
 
 		NodeObject o = null;
@@ -1051,7 +1051,7 @@ public class GUI extends JFrame {
 			raf = new RandomAccessFile(file,"r");
 			byte h[] = new byte[16];
 			raf.read(h);
-			if (!Auxiliary.bytesToHex(h).equals(Job.MAGIC_HEADER_STRING)) // we currently
+			if (!Auxiliary.bytesToHex(h).equals(JobGUI.MAGIC_HEADER_STRING)) // we currently
 			{
 				abort = true;
 				JOptionPane.showMessageDialog(GUI.app, "Couldn't find a valid SQLite3 magic. Import stopped",  "Error",  JOptionPane.ERROR_MESSAGE,null);
@@ -1083,7 +1083,7 @@ public class GUI extends JFrame {
 		/* insert Panel with general header information for this database */
 		TreePath tp = getPath(dbNode);
 			
-		Job job = new Job();
+		JobGUI job = new JobGUI();
 		tables.put(tp, panel);
 		updateTableUI();
 			
@@ -1501,9 +1501,9 @@ class TableMouseListener extends MouseAdapter {
 								if (no.type == FileTypes.SQLiteDB)
 									hv = no.job.hexview;
 								else if (no.type == FileTypes.WriteAheadLog)
-									hv = no.job.wal.hexview;
+									hv = ((WALReaderGUI) no.job.wal).hexview;
 								else if (no.type == FileTypes.RollbackJournalLog)
-									hv = no.job.rol.hexview;
+									hv = ((RollbackJournalReaderGUI) no.job.rol).hexview;
 
 								CustomTableModel ctm = (CustomTableModel) table.getModel();
 								String hd = ctm.getHeader(row);

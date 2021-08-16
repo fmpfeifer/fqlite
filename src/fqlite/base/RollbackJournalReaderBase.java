@@ -48,7 +48,7 @@ import fqlite.util.Logger;
  * @author pawlaszc
  *
  */
-public class RollbackJournalReader extends Base {
+public abstract class RollbackJournalReaderBase extends Base {
 
 	public static final String MAGIC_HEADER_STRING = "d9d505f920a163d7";
 	
@@ -56,7 +56,7 @@ public class RollbackJournalReader extends Base {
 	public FileChannel file;
 
 	/* This buffer holds RollbackJournal-file in RAM */
-	ByteBuffer rollbackjournal;
+	protected ByteBuffer rollbackjournal;
 
 	/* total size of RollbackJournal-file in bytes */
 	long size;
@@ -94,16 +94,14 @@ public class RollbackJournalReader extends Base {
 	private StringBuffer firstcol = new StringBuffer();
 
 	/* buffer that holds the current page */
-	ByteBuffer buffer;
+	protected ByteBuffer buffer;
 
 	public static List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
-	ConcurrentLinkedQueue<String> output = new ConcurrentLinkedQueue<String>();
+	protected ConcurrentLinkedQueue<String> output = new ConcurrentLinkedQueue<String>();
 	
-	HexView hexview = null;
-
 	/* file pointer */
 	int journalpointer = 0;
 	
@@ -114,7 +112,7 @@ public class RollbackJournalReader extends Base {
 	 * @param path    full qualified file name to the RollbackJournal archive
 	 * @param job reference to the Job class
 	 */
-	public RollbackJournalReader(String path, Job job) {
+	public RollbackJournalReaderBase(String path, Job job) {
 		this.path = path;
 		this.job = job;
 		this.ct = new Auxiliary(job);
@@ -704,82 +702,7 @@ public class RollbackJournalReader extends Base {
 	 *  This method can be used to write the result to a file or
 	 *  to update tables in the user interface (in gui-mode). 
 	 */
-	public void output()
-	{
-		if (job.gui != null) {
-			
-			info("Number of records recovered: " + output.size());
-
-			String[] lines = output.toArray(new String[0]);
-			Arrays.sort(lines);
-
-			TreePath path  = null;
-			for (String line : lines) {
-				String[] data = line.split(";");
-
-				path = job.guiroltab.get(data[0]);
-				job.gui.update_table(path, data, false);
-				
-			}
-			
-			/* remove empty tables and index-tables from the treeview */
-			Set<Entry<String, TreePath>> entries = job.guiroltab.entrySet();
-			Iterator<Entry<String, TreePath>> iter = entries.iterator();
-			DefaultTreeModel model = (DefaultTreeModel) (GUI.tree.getModel());
-			  
-			while(iter.hasNext())
-			{
-				Entry<String,TreePath> entry = iter.next();
-				
-				
-				DefaultMutableTreeNode node = (DefaultMutableTreeNode)entry.getValue().getLastPathComponent();
-				NodeObject no = (NodeObject)node.getUserObject();	
-				
-				/* check, if Rollback Journal-table has row entries, if not -> skip it */
-				DBTable t = no.table;
-				
-				 if (t.getModel().getRowCount() <= 1)
-	    		 {
-					 SwingUtilities.invokeLater(new Runnable() {
-						    public void run() {
-						    	TreeNode parent = node.getParent();
-							    model.removeNodeFromParent(node);
-							    model.nodeChanged(parent); 
-							    model.reload(parent);
-							    GUI.tree.updateUI();
-						    }
-					 });
-					    
-					    
-	    		       
-	    		 }
-				
-			}	
-
-			SwingWorker<Boolean, Void> backgroundProcess = new HexViewCreator(this.job,path,file,this.path,2);
-
-			backgroundProcess.execute();
-
-		} 
-		else 
-		{
-
-			Path dbfilename = Paths.get(path);
-			String name = dbfilename.getFileName().toString();
-
-			LocalDateTime now = LocalDateTime.now();
-			DateTimeFormatter df;
-			df = DateTimeFormatter.ISO_DATE_TIME; // 2020-01-31T20:07:07.095
-			String date = df.format(now);
-
-			String filename = "results" + name + date + ".csv";
-			
-			String[] lines = output.toArray(new String[0]);
-			job.writeResultsToFile(filename,lines);
-
-		}
-		
-	}
+	public abstract void output();
 
 	/**
 	 * Check the BitSet for gaps, i.e. regions we still have to carve.

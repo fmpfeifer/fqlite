@@ -8,7 +8,7 @@ package fqlite.ui;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import fqlite.base.Job;
+import fqlite.base.JobGUI;
 import fqlite.util.Auxiliary;
 
 public class HexDumpFactory
@@ -25,7 +25,7 @@ public class HexDumpFactory
   * @return String with HexDump for the current file loaded
   * @throws IOException
   */
-public static String dump(Job job) throws IOException
+public static String dump(JobGUI job) throws IOException
   {
     StringBuffer bf = new StringBuffer(job.db.capacity()*2);
 	

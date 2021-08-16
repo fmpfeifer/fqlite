@@ -152,7 +152,7 @@ public class SqliteElement {
 	}
 
 	final static CharBuffer decodeString(byte[] v) {
-		return Job.db_encoding.decode(ByteBuffer.wrap(v));
+		return JobGUI.db_encoding.decode(ByteBuffer.wrap(v));
 	}
 
 	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();

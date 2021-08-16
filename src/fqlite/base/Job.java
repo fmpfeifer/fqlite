@@ -16,30 +16,28 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-import javax.swing.tree.TreePath;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-import fqlite.base.WALReader.WALFrame;
 import fqlite.descriptor.AbstractDescriptor;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
-import fqlite.ui.DBPropertyPanel;
-import fqlite.ui.HexView;
-import fqlite.ui.RollbackPropertyPanel;
-import fqlite.ui.WALPropertyPanel;
 import fqlite.util.Auxiliary;
 import fqlite.util.ByteSeqSearcher;
 import fqlite.util.Logger;
@@ -117,20 +115,15 @@ public class Job extends Base {
 	/* the byte buffer representing the database file in RAM */
 	public ByteBuffer db;
 	
-	/* hex editor object reference */
-	HexView hexview;
-
 	/* since version 1.2 - support for write ahead logs WAL */
 	public boolean readWAL = false;
 	String walpath = null;
-	WALReader wal = null;
-	Hashtable<String, TreePath> guiwaltab = new Hashtable<String, TreePath>();
+	WALReaderBase wal = null;
 
 	/* since version 1.2 - support for write Rollback Journal files */
 	public boolean readRollbackJournal = false;
 	String rollbackjournalpath = null;
-	RollbackJournalReader rol = null;
-	Hashtable<String, TreePath> guiroltab = new Hashtable<String, TreePath>();
+	RollbackJournalReaderBase rol = null;
 	
 	
     /* some constants */
@@ -142,23 +135,14 @@ public class Job extends Base {
 	final static String ROW_ID = "00";
 	
 	
-	/* the next fields hold informations for the GUI */
-	GUI gui = null;
-	Hashtable<String, TreePath> guitab = new Hashtable<String, TreePath>();
-	
-	/* property panel for the user interface - only in gui-mode */
-	DBPropertyPanel panel = null;
-	WALPropertyPanel walpanel = null;
-	RollbackPropertyPanel rolpanel = null;
-	
 	/* size of file */
 	long size = 0;
 	
 	/* path - used to locate a file in a file system */
 	String path;
 	
-	/* An asynchronous channel for reading, writing, and manipulating the database file. */
-	private FileChannel file;
+	/* A channel for reading, writing, and manipulating the database file. */
+	protected FileChannel file;
 	
 	/* this field represent the database encoding */
 	public static Charset db_encoding = StandardCharsets.UTF_8;
@@ -167,7 +151,7 @@ public class Job extends Base {
 	List<String> lines = new LinkedList<String>();
 	
 	/* this is a multi-threaded program -> all data are saved to the list first*/
-	ConcurrentLinkedQueue<String> ll = new ConcurrentLinkedQueue<String>();
+	protected ConcurrentLinkedQueue<String> ll = new ConcurrentLinkedQueue<String>();
 	
 	/* header fields */
 	
@@ -229,7 +213,8 @@ public class Job extends Base {
 	
 	public AtomicInteger hits = new AtomicInteger();
 	
-	private List<Closeable> resourcesToClose = new ArrayList<>();
+	/** Collect resources to close at end of processing */
+	private Deque<Closeable> resourcesToClose = new LinkedList<>();
 
 	  
 	/******************************************************************************************************/
@@ -263,7 +248,7 @@ public class Job extends Base {
 
 		/* try to open the wal-file in read-only mode */
 		file = FileChannel.open(p, StandardOpenOption.READ);
-		resourcesToClose.add(file);
+		resourcesToClose.addFirst(file);
 		
 		if(null == file)
 			return null;
@@ -279,237 +264,18 @@ public class Job extends Base {
 		return bb;
 	}
 	
-	public void setPropertyPanel(DBPropertyPanel p)
-	{
-		this.panel = p;
+	protected void tableDescriptorReady(TableDescriptor td) {
 	}
 	
-	public void setWALPropertyPanel(WALPropertyPanel p)
-	{
-		this.walpanel = p;
+	protected void indexDescriptorReady(IndexDescriptor id) {
 	}
 	
-
-	public void setRollbackPropertyPanel(RollbackPropertyPanel p)
-	{
-		this.rolpanel = p;
+	protected void unassignedTableCreated(TableDescriptor td) {
 	}
 	
-	
-	public String[][] getHeaderProperties()
-	{
-		String [][] prop = {{"0","The header string",headerstring},
-				{"16","The database page size in bytes",String.valueOf(ps)},
-				{"18","File format write version",String.valueOf(ffwversion)},
-				{"19","File format read version",String.valueOf(ffrversion)},
-				{"20","Unused reserved space at the end of each page ",String.valueOf(reservedspace)},
-				{"21","Maximum embedded payload fraction. Must be 64.",String.valueOf(maxpayloadfrac)},
-				{"22","Minimum embedded payload fraction. Must be 32.",String.valueOf(minpayloadfrac)},
-				{"23","Leaf payload fraction. Must be 32.",String.valueOf(leafpayloadfrac)},
-				{"24","File change counter.",String.valueOf(filechangecounter)},
-				{"28","Size of the database file in pages. ",String.valueOf(sizeinpages)},
-				{"32","Page number of the first freelist trunk page.",String.valueOf(fphead)},
-				{"36","Total number of freelist pages.",String.valueOf(fpnumber)},
-				{"40","The schema cookie.",String.valueOf(schemacookie)},
-				{"44","The schema format number. Supported schema formats are 1, 2, 3, and 4.",String.valueOf(schemaformatnumber)},
-				{"48","Default page cache size.",String.valueOf(defaultpagecachesize)},
-				{"52","The page number of the largest root b-tree page when in auto-vacuum or incremental-vacuum modes, or zero otherwise.",String.valueOf(avacc)+" (" + (avacc > 0 ? true : false) + ")"},
-				{"56","The database text encoding.",String.valueOf(db_encoding.displayName())},
-				{"60","The \"user version\"",String.valueOf(userversion)},
-				{"64","True (non-zero) for incremental-vacuum mode. False (zero) otherwise.",String.valueOf(vacuummode)+" (" + (vacuummode > 0 ? true : false) + ")"},
-				{"92","The version-valid-for number.",String.valueOf(versionvalidfornumber)},
-				{"96","SQLITE_VERSION_NUMBER",String.valueOf(sqliteversion)}};
-		
-		
-		
-		
-		
-	
-		return prop;
+	protected void linesReady() {
 	}
-	
-	public String[][] getWALHeaderProperties()
-	{
-		String [][] prop = {{"0","HeaderString",wal.headerstring},
-				{"4","File format version",String.valueOf(wal.ffversion)},
-				{"8","Database page size",String.valueOf(wal.ps)},
-				{"12","Checkpoint sequence number",String.valueOf(wal.csn)},
-				{"16","Salt-1",String.valueOf(wal.hsalt1)},
-				{"20","Salt-2",String.valueOf(wal.hsalt2)},
-				{"24","Checksum1",String.valueOf(wal.hchecksum1)},
-				{"28","Checksum2",String.valueOf(wal.hchecksum2)}};
-		
-		return prop;
-	}
-	
-	public String[][] getRollbackHeaderProperties()
-	{
-		String [][] prop = {{"0","HeaderString",RollbackJournalReader.MAGIC_HEADER_STRING},
-				{"8","number of pages",String.valueOf(rol.pagecount)},
-				{"12","nounce for checksum",String.valueOf(rol.nounce)},
-				{"16","pages",String.valueOf(rol.pages)},
-				{"20","sector size ",String.valueOf(rol.sectorsize)},
-				{"24","journal page size",String.valueOf(rol.journalpagesize)}};
-		
-		return prop;
-	}
-	
-	public String[][] getCheckpointProperties()
-	{
-		ArrayList<String []> prop = new ArrayList<String []>();
-		
-		Set<Long> data = wal.checkpoints.descendingKeySet();
-		
-		Iterator<Long> it = data.iterator();
-		
-		while (it.hasNext())
-		{
-			Long salt1 = it.next();
 			
-			LinkedList<WALFrame> list = wal.checkpoints.get(salt1);
-			
-			Iterator<WALFrame> frames = list.iterator();
-			
-			while (frames.hasNext())
-			{
-				WALFrame current = frames.next();
-				
-			    String[] line = new String[5];
-			    line[0] = String.valueOf(current.salt1);
-			    line[1] = String.valueOf(current.salt2);
-			    line[2] = String.valueOf(current.framenumber);
-			    line[3] = String.valueOf(current.pagenumber);
-			    line[4] = String.valueOf(current.committed);
-			    
-			    prop.add(line);
-			    
-			}
-		}
-		
-		String[][] result = new String[prop.size()][5];
-		prop.toArray(result);
-		
-		return result;
-	}
-	
-	public LinkedHashMap<String,String[][]> getTableColumnTypes() 
-	{
-		
-		Iterator<TableDescriptor> it1 = headers.iterator();
-		LinkedHashMap<String,String[][]> ht = new LinkedHashMap<String,String[][]>();
-		
-		
-		while (it1.hasNext())
-		{
-			TableDescriptor td = it1.next();
-		    String[] names = (String[])td.columnnames.toArray(new String[0]);
-		    String[] types = (String[])td.serialtypes.toArray(new String[0]);
-		    String[] sqltypes = (String[])td.sqltypes.toArray(new String[0]);
-		    String[] tableconstraints = null;
-		    String[] constraints = null;
-		    
-			/* check, if there exists global constraints to the table */
-		    if (null != td.tableconstraints)
-	    	{	
-	    		tableconstraints = (String[])td.tableconstraints.toArray(new String[0]);	    		
-	    	}
-		    /* check, if there are constraints on one of the columns */
-		    if (null != td.constraints)
-		    {
-		    	constraints = (String[])td.constraints.toArray(new String[0]);    			    	
-		    }
-		    
-		    String[][] row = null;
-		    if(null != tableconstraints && null != constraints)
-		    {
-			    row = new String[][]{names,types,sqltypes,constraints,tableconstraints};
-		    		    	
-		    }
-		    else if (null != tableconstraints)
-		    {
-		       	row = new String[][]{names,types,sqltypes,tableconstraints};
-				 
-		    }
-		    else if (null != constraints)
-		    {
-		       	row = new String[][]{names,types,sqltypes,constraints};
-				    	
-		    }
-		    else
-		    {
-		    	row = new String[][]{names,types,sqltypes};
-		    }
-		    
-			ht.put(td.tblname,row);
-		}
-		
-		Iterator<IndexDescriptor> it2 = indices.iterator();
-		
-		while (it2.hasNext())
-		{
-			IndexDescriptor id = it2.next();
-			String[] names = (String[])id.columnnames.toArray(new String[0]);
-			String[] types = (String[])id.columntypes.toArray(new String[0]);
-		    
-		    String[][] row = null;
-	    	row = new String[][]{names,types};
-
-			ht.put("idx:" + id.idxname,row);
-		}	
-
-		return ht;
-	}
-	
-
-	
-	public String[][] getSchemaProperties()
-	{
-		String [][] prop = new String[headers.size() + indices.size()][6];//{{"","",""},{"","",""}};
-		int counter = 0;
-		
-		Iterator<TableDescriptor> it1 = headers.iterator();
-		
-		while (it1.hasNext())
-		{
-			TableDescriptor td = it1.next();
-			
-		    if (!td.tblname.startsWith("__"))
-		    	prop[counter] = new String[]{"Table",td.tblname,String.valueOf(td.root),td.sql,String.valueOf(td.isVirtual()),String.valueOf(td.ROWID)};
-			counter++;			
-		}
-		
-		Iterator<IndexDescriptor> it2 = indices.iterator();
-		
-		while (it2.hasNext())
-		{
-			IndexDescriptor td = it2.next();
-	
-			prop[counter] = new String[]{"Index",td.idxname,String.valueOf(td.root),td.getSql(),"",""};
-			counter++;			
-		}
-		
-		return prop;
-	}
-
-	
-	public void updateRollbackPanel()
-	{
-		rolpanel.initHeaderTable(this.getRollbackHeaderProperties());	
-	}
-	
-	public void updatePropertyPanel()
-	{
-		panel.initHeaderTable(getHeaderProperties());
-		panel.initSchemaTable(getSchemaProperties());
-		panel.initColumnTypesTable(getTableColumnTypes());
-	}
-
-	public void updateWALPanel()
-	{
-		walpanel.initHeaderTable(getWALHeaderProperties());
-		walpanel.initCheckpointTable(getCheckpointProperties());
-	}
-	
 	/**
 	 * This is the main processing loop of the program.
 	 * 
@@ -517,7 +283,7 @@ public class Job extends Base {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	protected int processDB() throws InterruptedException, ExecutionException {
+	public int processDB() throws InterruptedException, ExecutionException {
 
 		allreadyvisit = ConcurrentHashMap.newKeySet();
 
@@ -535,7 +301,6 @@ public class Job extends Base {
 			file = FileChannel.open(p, StandardOpenOption.READ);
 			resourcesToClose.add(file);
 
-			/** Caution!!! we read the complete file into RAM **/
 			readFileIntoBuffer();
 			
 			/* read header of the sqlite db - the first 100 bytes */
@@ -1145,9 +910,6 @@ public class Job extends Base {
 			/* prepare pre-compiled pattern objects */
 			Iterator<TableDescriptor> iter = headers.iterator();
 
-			/* this one is needed for the UI */
-			TreePath lastpath = null;
-
 			HashSet<String> doubles = new HashSet<String>();
  			
 			/*
@@ -1175,47 +937,7 @@ public class Job extends Base {
 
 				
 				
-				/* update treeview in UI - skip this step in console modus */
-				if (null != gui) {
-
-					TreePath path = gui.add_table(this, td.tblname, td.columnnames, td.getColumntypes(), td.primarykeycolumns, false, false,0);
-					guitab.put(td.tblname, path);
-					lastpath = path;
-
-					if (readWAL) {
-						
-						List<String> cnames = td.columnnames;
-						cnames.add(0,"commit");
-						cnames.add(1,"dbpage");
-						cnames.add(2,"walframe");
-						cnames.add(3,"salt1");
-						cnames.add(4,"salt2");
-						
-						List<String> ctypes = td.serialtypes;
-						ctypes.add(0,"INT");
-						ctypes.add(1,"INT");
-						ctypes.add(2,"INT");
-						ctypes.add(3,"INT");
-						ctypes.add(4,"INT");
-						
-						
-						TreePath walpath = gui.add_table(this, td.tblname, cnames, ctypes, td.primarykeycolumns, true, false,0);
-						guiwaltab.put(td.tblname, walpath);
-						setWALPath(walpath.toString());
-
-					}
-
-					else if (readRollbackJournal) {
-						TreePath rjpath = gui.add_table(this, td.tblname, td.columnnames, td.getColumntypes(),td.primarykeycolumns, false, true,0);
-						guiroltab.put(td.tblname, rjpath);
-						setRollbackJournalPath(rjpath.toString());
-					}
-
-					if (null != lastpath) {
-						Logger.out.info("Expend Path" + lastpath);
-						GUI.tree.expandPath(lastpath);
-					}
-				}
+				tableDescriptorReady(td);
 
 				if (td.isVirtual())
 					continue;
@@ -1238,49 +960,7 @@ public class Job extends Base {
 				int r = id.getRootOffset();
 				info(" root offset for index " + r);
 
-				/* update treeview in UI - skip this step in console modus */
-				if (null != gui) {
-					TreePath path = gui.add_table(this, id.idxname, id.columnnames, id.columntypes, null, false, false,1);
-					Logger.out.info("id.idxname " + id.idxname);
-					guitab.put(id.idxname, path);
-					lastpath = path;
-
-					if (readWAL) {
-						
-						
-						List<String> cnames = id.columnnames;
-						cnames.add(0,"commit");
-						cnames.add(1,"dbpage");
-						cnames.add(2,"walframe");
-						cnames.add(3,"salt1");
-						cnames.add(4,"salt2");
-						
-						List<String> ctypes = id.columntypes;
-						ctypes.add(0,"INT");
-						ctypes.add(1,"INT");
-						ctypes.add(2,"INT");
-						ctypes.add(3,"INT");
-						ctypes.add(4,"INT");
-						
-						
-						
-						TreePath walpath = gui.add_table(this, id.idxname, cnames, ctypes, null, true, false,1);
-						guiwaltab.put(id.idxname, walpath);
-						setWALPath(walpath.toString());
-
-					}
-
-					else if (readRollbackJournal) {
-						TreePath rjpath = gui.add_table(this, id.idxname, id.columnnames, id.columntypes, null, false, true,1);
-						guiroltab.put(id.idxname, rjpath);
-						setRollbackJournalPath(rjpath.toString());
-					}
-
-					if (null != lastpath) {
-						GUI.tree.expandPath(lastpath);
-					}
-				}
-
+				indexDescriptorReady(id);
 			}
 		
 			
@@ -1292,45 +972,18 @@ public class Job extends Base {
 			 * are assigned to the __UNASSIGNED component.
 			 */
 
-			if (null != gui) {
-				List<String> col = new ArrayList<String>();
-				List<String> names = new ArrayList<String>();
+			List<String> col = new ArrayList<String>();
+			List<String> names = new ArrayList<String>();
 
-				/* create dummy component for unassigned records */
-				for (int i = 0; i < 20; i++) {
-					col.add("TEXT");
-					names.add("col" + (i + 1));
-				}
-				TableDescriptor tdefault = new TableDescriptor("__UNASSIGNED", "",col, col, names, null, null, null, false);
-				headers.add(tdefault);
-
-				/* update treeview in UI - skip this step in console modus */
-				if (null != gui) {
-					TreePath path = gui.add_table(this, tdefault.tblname, tdefault.columnnames,
-							tdefault.getColumntypes(), null, false, false,0);
-					guitab.put(tdefault.tblname, path);
-					lastpath = path;
-
-					if (readWAL) {
-						TreePath walpath = gui.add_table(this, tdefault.tblname, tdefault.columnnames,
-								tdefault.getColumntypes(), null, true, false,0);
-						guiwaltab.put(tdefault.tblname, walpath);
-						setWALPath(walpath.toString());
-					}
-
-					else if (readRollbackJournal) {
-						TreePath rjpath = gui.add_table(this, tdefault.tblname, tdefault.columnnames,
-								tdefault.getColumntypes(),null, false, true,0);
-						guiroltab.put(tdefault.tblname, rjpath);
-						setRollbackJournalPath(rjpath.toString());
-					}
-
-					if (null != lastpath) {
-						GUI.tree.expandPath(lastpath);
-					}
-				}
+			/* create dummy component for unassigned records */
+			for (int i = 0; i < 20; i++) {
+				col.add("TEXT");
+				names.add("col" + (i + 1));
 			}
-
+			TableDescriptor tdefault = new TableDescriptor("__UNASSIGNED", "",col, col, names, null, null, null, false);
+			headers.add(tdefault);
+			
+			unassignedTableCreated(tdefault);
 			/*******************************************************************/
 
 			byte freepageno[] = new byte[4];
@@ -1484,67 +1137,7 @@ public class Job extends Base {
 			scan(numberofpages, ps);
 
 			/*******************************************************************/
-
-			if (gui != null) {
-				info("Number of records recovered: " + ll.size());
-
-				String[] lines = ll.toArray(new String[0]);
-				Arrays.sort(lines);
-
-				TreePath path = null;
-				for (String line : lines) {
-					String[] data = line.split(";");
-
-					path = guitab.get(data[0]);
-					gui.update_table(path, data, false);
-				}
-
-				SwingWorker<Boolean, Void> backgroundProcess = new HexViewCreator(this, path, file, this.path, 0);
-
-				
-				backgroundProcess.execute();
-
-				if (GUI.doesWALFileExist(this.path) > 0) {
-
-					String walpath = this.path + "-wal";
-					wal = new WALReader(walpath, this);
-					wal.parse();
-					wal.output();
-
-				}
-
-				if (GUI.doesRollbackJournalExist(this.path) > 0) {
-
-					String rjpath = this.path + "-journal";
-					rol = new RollbackJournalReader(rjpath, this);
-					rol.ps = this.ps;
-					rol.parse();
-					rol.output();
-				}
-			} else {
-				String[] lines = ll.toArray(new String[0]);
-				writeResultsToFile(null, lines);
-
-				if (readRollbackJournal) {
-					/* the readWAL option is enabled -> check the WAL-file too */
-					Logger.out.info(" RollbackJournal-File " + this.rollbackjournalpath);
-					rol = new RollbackJournalReader(rollbackjournalpath, this);
-					rol.ps = this.ps;
-					/* start parsing Rollbackjournal-file */
-					rol.parse();
-					rol.output();
-				}
-				else if (readWAL) {
-					/* the readWAL option is enabled -> check the WAL-file too */
-					Logger.out.info(" WAL-File " + walpath);
-					WALReader wal = new WALReader(walpath, this);
-					/* start parsing WAL-file */
-					wal.parse();
-					wal.output();
-				}
-
-				return lines.toString().hashCode();
-			}
+			linesReady();
 
 		} catch (IOException e) {
 
@@ -1561,49 +1154,6 @@ public class Job extends Base {
 		}
 
 		return 0;
-	}
-	/**
-	 * Save findings into a comma separated file.
-	 * @param filename
-	 * @param lines
-	 */
-	public void writeResultsToFile(String filename, String [] lines) {
-		Logger.out.info("Write results to file...");
-		Logger.out.info("Number of records recovered: " + ll.size());
-
-		if (null == filename) {
-			Path dbfilename = Paths.get(path);
-			String name = dbfilename.getFileName().toString();
-
-			LocalDateTime now = LocalDateTime.now();
-			DateTimeFormatter df;
-			df = DateTimeFormatter.ISO_DATE_TIME; // 2020-01-31T20:07:07.095
-			String date = df.format(now);
-			date = date.replace(":","_");
-
-			filename = "results" + name + date + ".csv";
-		}
-		
-		Arrays.sort(lines);
-
-		/** convert line to UTF-8 **/
-		try {
-			
-			final File file = new File(filename);
-            
-			
-		    try (final BufferedWriter writer = Files.newBufferedWriter(file.toPath(),Charset.forName("UTF-8"), StandardOpenOption.CREATE)) 
-		    {
-		      for (String line: lines)
-		      {	
-		    	  writer.write(line);
-		      }
-		    }
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
 	}
 	
 	
@@ -1821,11 +1371,6 @@ public class Job extends Base {
 
 	}
 
-
-	protected void setGUI(GUI gui) {
-		this.gui = gui;
-	}
-
 	public void setPath(String path) {
 		this.path = path;
 	}
@@ -1853,21 +1398,7 @@ public class Job extends Base {
 		else
 			return;
 	}
-	
-	public void info(String message) {
-		if (gui != null)
-			gui.doLog(message);
-		else
-			super.info(message);
-	}
-
-	public void err(String message) {
-		if (gui != null)
-			JOptionPane.showMessageDialog(gui, message);
-		else
-			super.err("ERROR: " + message);
-	}
-	
+		
 	/**
 	 *	 
 	 */
@@ -2022,8 +1553,8 @@ public class Job extends Base {
 
 			buffer.get(cpn);
 
-			ByteBuffer size = ByteBuffer.wrap(cpn);
-			int cp = Auxiliary.TwoByteBuffertoInt(size);
+			// ByteBuffer size = ByteBuffer.wrap(cpn);
+			// int cp = Auxiliary.TwoByteBuffertoInt(size);
 
 			//System.out.println(" cell offset start: " + cp);
 			//System.out.println(" root is " + root + " number of elements: " + e);
@@ -2114,6 +1645,50 @@ public class Job extends Base {
 		/* no luck */
 		return null;
 	}
+	
+	/**
+     * Save findings into a comma separated file.
+     * @param filename
+     * @param lines
+     */
+    public void writeResultsToFile(String filename, String [] lines) {
+        Logger.out.info("Write results to file...");
+        Logger.out.info("Number of records recovered: " + ll.size());
+
+        if (null == filename) {
+            Path dbfilename = Paths.get(path);
+            String name = dbfilename.getFileName().toString();
+
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter df;
+            df = DateTimeFormatter.ISO_DATE_TIME; // 2020-01-31T20:07:07.095
+            String date = df.format(now);
+            date = date.replace(":","_");
+
+            filename = "results" + name + date + ".csv";
+        }
+        
+        Arrays.sort(lines);
+
+        /** convert line to UTF-8 **/
+        try {
+            
+            final File file = new File(filename);
+            
+            
+            try (final BufferedWriter writer = Files.newBufferedWriter(file.toPath(),Charset.forName("UTF-8"), StandardOpenOption.CREATE)) 
+            {
+              for (String line: lines)
+              { 
+                  writer.write(line);
+              }
+            }
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
 
 }
 

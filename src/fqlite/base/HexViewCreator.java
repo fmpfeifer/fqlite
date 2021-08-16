@@ -29,7 +29,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
     FileChannel file;
     int type = 0;
 	
-	Job job;
+	JobGUI job;
 	TreePath path;
 	
 	/**
@@ -40,7 +40,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 * @param filename
 	 * @param type
 	 */
-	public HexViewCreator(Job job, TreePath path, FileChannel file, String filename, int type) {
+	public HexViewCreator(JobGUI job, TreePath path, FileChannel file, String filename, int type) {
 		super();
 		this.job = job;
 		this.path = path;
@@ -101,7 +101,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 * @return String with HexDump for the current file loaded
 	 * @throws IOException
 	 */
-	public void create(Job job) throws IOException {
+	public void create(JobGUI job) throws IOException {
 
 		
 		ByteBuffer in = readFileIntoBuffer(job);
@@ -160,7 +160,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 * @return a read-only ByteBuffer representing the db content
 	 * @throws IOException
 	 */
-	private ByteBuffer readFileIntoBuffer(Job job) throws IOException {
+	private ByteBuffer readFileIntoBuffer(JobGUI job) throws IOException {
 		/* read the complete file into a ByteBuffer */
 		long size = file.size();
 		
@@ -185,9 +185,9 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	        	if (type == 0)
 	        		job.hexview = dialog;
 	        	else if (type == 1)
-	        		job.wal.hexview = dialog;
+	        		((WALReaderGUI) job.wal).hexview = dialog;
 	        	else if (type == 2)
-	        		job.rol.hexview = dialog;
+	        		((RollbackJournalReaderGUI) job.rol).hexview = dialog;
 	        	
                 dialog.setVisible(false);
 	        }

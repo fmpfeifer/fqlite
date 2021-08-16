@@ -2,7 +2,7 @@ package fqlite.ui;
 
 import javax.swing.JDialog;
 
-import fqlite.base.Job;
+import fqlite.base.JobGUI;
 import fqlite.types.FileTypes;
 
 /**
@@ -14,7 +14,7 @@ import fqlite.types.FileTypes;
 public class NodeObject{
 	
 	public String name;
-	public Job job;
+	public JobGUI job;
     int numberOfColumns;	
     JDialog hexview;
     public FileTypes type;  // 0.. db-Node 1.. WAL-Node 2.. Journal-Node

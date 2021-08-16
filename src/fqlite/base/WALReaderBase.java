@@ -6,33 +6,18 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
 
 import fqlite.descriptor.AbstractDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
-import fqlite.ui.DBTable;
-import fqlite.ui.HexView;
-import fqlite.ui.NodeObject;
 import fqlite.util.Auxiliary;
 
 /**
@@ -49,7 +34,7 @@ import fqlite.util.Auxiliary;
  * @author pawlaszc
  *
  */
-public class WALReader extends Base {
+public abstract class WALReaderBase extends Base {
 	
 	/* checkpoints is a data structure 
 	 * 
@@ -132,10 +117,6 @@ public class WALReader extends Base {
 	/* outputlist */
 	ConcurrentLinkedQueue<String> output = new ConcurrentLinkedQueue<String>();
 	
-	HexView hexview = null;
-	
-	
-
 
 	/**
 	 * Constructor.
@@ -143,7 +124,7 @@ public class WALReader extends Base {
 	 * @param path    full qualified file name to the WAL archive
 	 * @param job reference to the Job class
 	 */
-	public WALReader(String path, Job job) {
+	public WALReaderBase(String path, Job job) {
 		this.path = path;
 		this.job = job;
 		this.ct = new Auxiliary(job);
@@ -606,7 +587,7 @@ public class WALReader extends Base {
 						/*
 						 * we use the xxx_node shadow component to construct the virtual component
 						 */
-						String BLOB = rc.substring(p1);
+						//String BLOB = rc.substring(p1);
 						//System.out.println(BLOB);
 
 						/*
@@ -962,89 +943,7 @@ public class WALReader extends Base {
 	 *  This method can be used to write the result to a file or
 	 *  to update tables in the user interface (in gui-mode). 
 	 */
-	public void output()
-	{
-		if (job.gui != null) {
-			
-			
-			info("Number of records recovered: " + output.size() + output.toString());
-
-			String[] lines = output.toArray(new String[0]);
-			Arrays.sort(lines);
-
-	
-			TreePath path  = null;
-			for (String line : lines) {
-				String[] data = line.split(";");
-
-				path = job.guiwaltab.get(data[0]);
-				job.gui.update_table(path, data, true);
-				
-			}
-			
-			
-			/* remove empty tables and index-tables from the treeview */
-			Set<Entry<String, TreePath>> entries = job.guiwaltab.entrySet();
-			Iterator<Entry<String, TreePath>> iter = entries.iterator();
-			DefaultTreeModel model = (DefaultTreeModel) (GUI.tree.getModel());
-			  
-			while(iter.hasNext())
-			{
-				Entry<String,TreePath> entry = iter.next();
-				
-				
-				DefaultMutableTreeNode node = (DefaultMutableTreeNode)entry.getValue().getLastPathComponent();
-				NodeObject no = (NodeObject)node.getUserObject();	
-				
-				/* check, if WAL-table has row entries, if not -> skip it */
-				DBTable t = no.table;
-				
-				 if (t.getModel().getRowCount() <= 1)
-				 {
-					 SwingUtilities.invokeLater(new Runnable() {
-						    public void run() {
-						    	TreeNode parent = node.getParent();
-							    model.removeNodeFromParent(node);
-							    model.nodeChanged(parent); 
-							    model.reload(parent);
-							    GUI.tree.updateUI();
-						    }
-					 });
-					    
-					    
-	    		       
-	    		 }
-				
-			}	
-			
-			
-		
-			/* create a hex viewer object for this particular table */
-
-			SwingWorker<Boolean, Void> backgroundProcess = new HexViewCreator(this.job,path,file,this.path,1);
-
-			backgroundProcess.execute();
-
-		} 
-		else 
-		{
-
-			Path dbfilename = Paths.get(path);
-			String name = dbfilename.getFileName().toString();
-
-			LocalDateTime now = LocalDateTime.now();
-			DateTimeFormatter df;
-			df = DateTimeFormatter.ISO_DATE_TIME; // 2020-01-31T20:07:07.095
-			String date = df.format(now);
-
-			String filename = "results" + name + date + ".csv";
-			
-			String[] lines = output.toArray(new String[0]);
-			job.writeResultsToFile(filename,lines);
-
-		}
-		
-	}
+	public abstract void output();
 	
 	/**
 	 * Recursive function to traverse all nodes of a JTree
