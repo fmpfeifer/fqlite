@@ -3,6 +3,7 @@ package fqlite.base;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.Set;
 
 import javax.swing.SwingUtilities;
@@ -56,7 +57,7 @@ public class WALReaderGUI extends WALReaderBase {
 			
 			info("Number of records recovered: " + output.size() + output.toString());
 
-			String[] lines = output.toArray(new String[0]);
+			String[] lines = output.stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
 			Arrays.sort(lines);
 
 	

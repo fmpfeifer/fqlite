@@ -12,9 +12,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import fqlite.base.Base;
 import fqlite.base.Global;
-import fqlite.base.JobGUI;
 import fqlite.base.Job;
 import fqlite.base.SqliteElement;
+import fqlite.base.SqliteElementData;
+import fqlite.base.SqliteRow;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.parser.SQLiteSchemaParser;
@@ -121,9 +122,9 @@ public class Auxiliary extends Base {
 			return false;
 
 		// use the header information to reconstruct
-		int pll = computePayloadLength(header);
+		//int pll = computePayloadLength(header);
 
-		int so = computePayload(pll);
+		//int so = computePayload(pll);
 
 //		int overflow = -1;
 //		if (so < pll) {
@@ -269,8 +270,8 @@ public class Auxiliary extends Base {
 		if (null == columns)
 			return null;
 
-		StringBuffer lineUTF = new StringBuffer();
-		int co = 0;
+		SqliteRow row = new SqliteRow();
+		//int co = 0;
 		String fp = null;
 		try {
 			fp = getTableFingerPrint(columns);
@@ -283,7 +284,7 @@ public class Auxiliary extends Base {
 
 		boolean error = false;
 
-		lineUTF.append(((pagenumber - 1) * job.ps + buffer.position()) + ";");
+		row.setOffset((pagenumber - 1) * job.ps + buffer.position());
 
 		/* use the header information to reconstruct */
 		int pll = computePayloadLength(header);
@@ -347,9 +348,9 @@ public class Auxiliary extends Base {
 
 				bf.get(value);
 
-				lineUTF.append(write(co, en, value));
+				row.append(new SqliteElementData(en, value));
 
-				co++;
+				//co++;
 			}
 
 			// set original buffer pointer to the end of the spilled payload
@@ -371,9 +372,9 @@ public class Auxiliary extends Base {
 				}
 				buffer.get(value);
 
-				lineUTF.append(write(co, en, value));
+				row.append(new SqliteElementData(en, value));
 
-				co++;
+				//co++;
 
 			}
 
@@ -388,14 +389,12 @@ public class Auxiliary extends Base {
 		debug("visited :: " + (((pagenumber - 1) * job.ps) + recordstart) + " bis " + cursor);
 
 		/* append header match string at the end */
-		lineUTF.append("##header##" + header);
-
-		lineUTF.append("\n");
+		row.setLineSuffix("##header##" + header);
 
 		// if (!tables.containsKey(idxname))
 		// tables.put(idxname, new ArrayList<String[]>());
-		debug(lineUTF.toString());
-		return new CarvingResult(buffer.position(), cursor, lineUTF);
+		debug(row);
+		return new CarvingResult(buffer.position(), cursor, row);
 	}
 
 	/**
@@ -415,26 +414,6 @@ public class Auxiliary extends Base {
 	}
 
 	/**
-	 * Converts a byte array into StringBuffer.
-	 * 
-	 * @param col   column number
-	 * @param en    the element to convert
-	 * @param value the actual value
-	 * @return the converted StringBuffer value
-	 */
-	private StringBuffer write(int col, SqliteElement en, byte[] value) {
-
-		StringBuffer val = new StringBuffer();
-
-		if (col > 0)
-			val.append(";");
-
-		val.append(en.toString(value));
-
-		return val;
-	}
-
-	/**
 	 * This method can be used to read an active data record.
 	 * 
 	 * A regular cell has the following structure
@@ -448,7 +427,7 @@ public class Auxiliary extends Base {
 	 * 
 	 * 
 	 **/
-	public String readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
+	public SqliteRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
 			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer) throws IOException {
 
 		boolean unkown = false;
@@ -457,34 +436,40 @@ public class Auxiliary extends Base {
 		buffer.position(0);
 
 		// prepare the string for the return value
-		StringBuffer lineUTF = new StringBuffer();
+		SqliteRow row = new SqliteRow();
 
 		/* For WAL and ROL files the values is always greater than 0 */
 		if (filepointer > 0) {
 			if (job.pages.length > pagenumber_db) {
 				if (null != job.pages[pagenumber_db]) {
-
-					lineUTF.append(job.pages[pagenumber_db].getName() + ";");
+				    row.setTableName(job.pages[pagenumber_db].getName());
+					//lineUTF.append(job.pages[pagenumber_db].getName() + ";");
 				}
 			} else {
-				lineUTF.append("__UNASSIGNED;");
+				//lineUTF.append("__UNASSIGNED;");
+			    row.setTableName("__UNASSIGNED");
 				// unkown=true;
 			}
 
-			lineUTF.append(Global.REGULAR_RECORD + ";");
-			lineUTF.append(filepointer + cellstart + ";");
+			row.setRecordType(Global.REGULAR_RECORD);
+			row.setOffset(filepointer + cellstart);
+
+			//lineUTF.append(filepointer + cellstart + ";");
 
 		} else
 		/* first, add component name if known */
 		if (null != job.pages[pagenumber_db]) {
-			lineUTF.append(job.pages[pagenumber_db].getName() + ";");
-			lineUTF.append(Global.REGULAR_RECORD + ";");
+		    row.setTableName(job.pages[pagenumber_db].getName());
+			//lineUTF.append(job.pages[pagenumber_db].getName() + ";");
+			row.setRecordType(Global.REGULAR_RECORD);
+		    //lineUTF.append(Global.REGULAR_RECORD + ";");
 
 			/*
 			 * for a regular db-file the offset is derived from the page number, since all
 			 * pages are a multiple of the page size (ps).
 			 */
-			lineUTF.append((pagenumber_db - 1) * job.ps + cellstart + ";");
+			row.setOffset((pagenumber_db - 1) * job.ps + cellstart);
+			//lineUTF.append((pagenumber_db - 1) * job.ps + cellstart + ";");
 
 		} else {
 			/*
@@ -575,14 +560,19 @@ public class Auxiliary extends Base {
 
 				/* this is only neccessesary, when component name is unkown */
 				if (null == td)
-					lineUTF.append("__UNASSIGNED" + ";");
+					//lineUTF.append("__UNASSIGNED" + ";");
+				    row.setTableName("__UNASSIGNED");
 				else {
-					lineUTF.append(td.tblname + ";");					
+				    row.setTableName(td.tblname);
+					//lineUTF.append(td.tblname + ";");
 					job.pages[pagenumber_db] = td;
 				}
 
-				lineUTF.append(Global.REGULAR_RECORD + ";");
-				lineUTF.append((pagenumber_db - 1) * job.ps + cellstart + ";");
+				row.setRecordType(Global.REGULAR_RECORD);
+				row.setOffset((pagenumber_db - 1) * job.ps + cellstart);
+
+				//lineUTF.append(Global.REGULAR_RECORD + ";");
+				//lineUTF.append((pagenumber_db - 1) * job.ps + cellstart + ";");
 
 			}
 		} catch (NullPointerException err) {
@@ -647,26 +637,31 @@ public class Auxiliary extends Base {
 			/* start reading the content */
 			for (SqliteElement en : columns) {
 				if (en == null) {
-					lineUTF.append(";NULL");
+					//lineUTF.append(";NULL");
+				    row.append(new SqliteElementData(null));
 					continue;
 				}
 
 				if (!withoutROWID)
-					checkROWID(co, en, rowid, lineUTF);
+					checkROWID(co, en, rowid, row);
 
-				byte[] value = new byte[en.length];
+				if (en.length > 0) {
 
-				if ((bf.limit() - bf.position()) < value.length) {
-					info(
-							" Bufferunderflow " + (bf.limit() - bf.position()) + " is lower than" + value.length);
-				}
+				    byte[] value = new byte[en.length];
 
-				try {
-					bf.get(value);
-					lineUTF.append(write(co, en, value));
+				    if ((bf.limit() - bf.position()) < value.length) {
+				        info(
+				                " Bufferunderflow " + (bf.limit() - bf.position()) + " is lower than" + value.length);
+				    }
 
-				} catch (java.nio.BufferUnderflowException bue) {
-					err("readRecord():: overflow" + "java.nio.BufferUnderflowException");
+				    try {
+				        bf.get(value);
+				        row.append(new SqliteElementData(en, value));
+				        //lineUTF.append(write(co, en, value));
+
+				    } catch (java.nio.BufferUnderflowException bue) {
+    					err("readRecord():: overflow" + "java.nio.BufferUnderflowException");
+    				}
 				}
 
 				co++;
@@ -691,12 +686,13 @@ public class Auxiliary extends Base {
 			 */
 			for (SqliteElement en : columns) {
 				if (en == null) {
-					lineUTF.append(";");
+					//lineUTF.append(";");
+				    row.append(new SqliteElementData(""));
 					continue;
 				}
 
 				if (!withoutROWID)
-					checkROWID(co, en, rowid, lineUTF);
+					checkROWID(co, en, rowid, row);
 
 				byte[] value = null;
 				if (maxlength >= en.length)
@@ -716,7 +712,10 @@ public class Auxiliary extends Base {
 					return null;
 				}
 
-				lineUTF.append(write(co, en, value));
+				//lineUTF.append(write(co, en, value));
+				if (en.length > 0 || co > 0) {
+				    row.append(new SqliteElementData(en, value));
+				}
 
 				co++;
 
@@ -727,9 +726,9 @@ public class Auxiliary extends Base {
 		}
 
 		/* append header match string at the end */
-		lineUTF.append("##header##" + hh);
+		row.setLineSuffix("##header##" + hh);
 
-		lineUTF.append("\n");
+		//lineUTF.append("\n");
 
 		/* mark as visited */
 		debug("visted " + cellstart + " bis " + buffer.position());
@@ -737,10 +736,10 @@ public class Auxiliary extends Base {
 
 		if (error) {
 			err("spilles overflow page error ...");
-			return "";
+			return null;
 		}
-		debug(lineUTF.toString());
-		return lineUTF.toString();
+		debug(row);
+		return row;
 	}
 
 	private TableDescriptor matchTable(SqliteElement[] header) {
@@ -1148,7 +1147,7 @@ public class Auxiliary extends Base {
 		return ByteBuffer.wrap(ret).getInt();
 	}
 
-	private void checkROWID(int co, SqliteElement en, int rowid, StringBuffer lineUTF) {
+	private void checkROWID(int co, SqliteElement en, int rowid, SqliteRow row) {
 		/* There is a ROWID column ? */
 		if (co == 0 && en.length == 0) {
 			/*
@@ -1162,7 +1161,8 @@ public class Auxiliary extends Base {
 			 * Accordingly the first component column has length 0x00 and must be an INTEGER
 			 * -> take the rowid instead;
 			 */
-			lineUTF.append(rowid);
+			//lineUTF.append(rowid);
+		    row.append(new SqliteElementData(en, (long)rowid));
 			// System.out.println("PRIMARY KEY COLUMN ALIASED ROWID");
 		}
 	}

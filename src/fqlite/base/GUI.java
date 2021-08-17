@@ -41,6 +41,8 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -79,10 +81,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
+
 import fqlite.types.FileTypes;
 import fqlite.ui.AboutDialog;
 import fqlite.ui.CopyAction;
-import fqlite.ui.CustomCellRenderer;
 import fqlite.ui.CustomTableModel;
 import fqlite.ui.CustomTreeCellRenderer;
 import fqlite.ui.DBPropertyPanel;
@@ -91,6 +93,7 @@ import fqlite.ui.FTreeNode;
 import fqlite.ui.FileInfo;
 import fqlite.ui.FontChooser;
 import fqlite.ui.HexView;
+import fqlite.ui.IconRenderer;
 import fqlite.ui.NodeObject;
 import fqlite.ui.PasteAction;
 import fqlite.ui.PopUpListener;
@@ -99,9 +102,7 @@ import fqlite.ui.RollbackPropertyPanel;
 import fqlite.ui.RowFilterUtil;
 import fqlite.ui.Statusbar;
 import fqlite.ui.WALPropertyPanel;
-import fqlite.ui.IconRenderer;
 import fqlite.util.Auxiliary;
-import fqlite.util.BLOBCarver;
 import fqlite.util.Logger;
 
 /*
@@ -856,14 +857,14 @@ public class GUI extends JFrame {
 			
 			public ImageIcon getImageIcon(MouseEvent event)
 			{
-				Point point = event.getPoint();
+				/*Point point = event.getPoint();
 				int column = table.columnAtPoint(point);
-				int row = table.rowAtPoint(point);
+				int row = table.rowAtPoint(point);*/
 				ImageIcon out = null; 
 				
 				
 				//if (column > 1) //&& lastclickrow != row)
-				{
+				/*{
 					JTable table = (JTable)event.getSource();
 					Object o = table.getValueAt(row, column);
 					
@@ -880,7 +881,7 @@ public class GUI extends JFrame {
 				    	
 				    	
 				    }	
-				}
+				}*/
 				return out;
 			}
 			
@@ -1235,7 +1236,8 @@ public class GUI extends JFrame {
 			case 1      :   // index
 				
 						String headerline = getColumnLineForTable(no.table);
-						lines = filterLines(no.job.ll.iterator(),no.name,headerline);
+						lines = filterLines(no.job.getRows().stream().map(SqliteRow::toString).iterator(), no.name, headerline);
+						//lines = filterLines(no.job.ll.iterator(),no.name,headerline);
 						
 						
 						break;
@@ -1245,7 +1247,8 @@ public class GUI extends JFrame {
 					 			
 			case 101 :  // wal 
 					    
-				        lines = no.job.ll.toArray(new String[0]);
+			            lines = no.job.getRows().stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
+				        //lines = no.job.ll.toArray(new String[0]);
 				        	
 						break;
 			default  :  // root;

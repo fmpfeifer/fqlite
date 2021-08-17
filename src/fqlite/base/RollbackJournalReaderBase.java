@@ -6,31 +6,16 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
 
 import fqlite.descriptor.AbstractDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
-import fqlite.ui.DBTable;
-import fqlite.ui.HexView;
-import fqlite.ui.NodeObject;
 import fqlite.util.Auxiliary;
 import fqlite.util.Logger;
 
@@ -100,7 +85,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
-	protected ConcurrentLinkedQueue<String> output = new ConcurrentLinkedQueue<String>();
+	protected Queue<SqliteRow> output = new ConcurrentLinkedQueue<SqliteRow>();
 	
 	/* file pointer */
 	int journalpointer = 0;
@@ -417,20 +402,21 @@ public abstract class RollbackJournalReaderBase extends Base {
 			//}
 			hls.trim();
 			
-			String rc = null;
+			SqliteRow row = null;
 
 			try {
-				rc = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
 			// add new line to output
-			if (null != rc && rc.length() > 0) {
+			if (null != row) {
 
 				int p1;
-				if ((p1 = rc.indexOf("_node;")) > 0) {
-					String tbln = rc.substring(0, p1);
+				String tableName = row.getTableName();
+				if ((p1 = tableName.indexOf("_node;")) > 0) {
+					String tbln = tableName.substring(0, p1);
 
 					if (job.virtualTables.containsKey(tbln)) {
 						TableDescriptor tds = job.virtualTables.get(tbln);
@@ -438,15 +424,16 @@ public abstract class RollbackJournalReaderBase extends Base {
 						/*
 						 * we use the xxx_node shadow component to construct the virtual component
 						 */
-						String BLOB = rc.substring(p1);
-						info(BLOB);
+						//String BLOB = rc.substring(p1);
+						//info(BLOB);
 
 						/*
 						 * skip the first information -> go directly to the 5th element of the data
 						 * record line, i.e. go to the BLOB with the row data
 						 */
-						int pp = Auxiliary.findNthOccur(rc, ';', 4);
-						String data = rc.substring(pp + 1);
+						//int pp = Auxiliary.findNthOccur(rc, ';', 4);
+						//String data = rc.substring(pp + 1);
+						String data = row.getRowData().get(1).toString();
 
 						/* transform String data into an byte array */
 						byte[] binary = Auxiliary.decode(data);
@@ -459,12 +446,16 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 						/* create a new line for every data row */
 						while (entries > 0) {
-							StringBuffer vrow = new StringBuffer();
-							vrow.append(tbln + ";VT;0;"); // start a new row for the virtual component
+							SqliteRow vrow = new SqliteRow();
+							vrow.setTableName(tbln);
+							vrow.setRecordType("VT");
+							vrow.setOffset(0);
+							//vrow.append(tbln + ";VT;0;"); // start a new row for the virtual component
 
 							// The first column is always a 64-bit signed integer primary key.
 							long primarykey = bf.getLong();
-							vrow.append(primarykey + ";");
+							//vrow.append(primarykey + ";");
+							vrow.append(new SqliteElementData(primarykey));
 
 							// Each R*Tree indices is a virtual component with an odd number of columns
 							// between 3 and 11
@@ -474,12 +465,13 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 							while (number > 0) {
 								float rv = bf.getFloat();
-								vrow.append(rv + ";");
+								//vrow.append(rv + ";");
+								vrow.append(new SqliteElementData(rv));
 								number--;
 							}
 
-							vrow.append("\n");
-							output.add(vrow.toString());
+							//vrow.append("\n");
+							output.add(vrow);
 
 							info(vrow.toString());
 
@@ -491,7 +483,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				}
 
-				output.add(rc);
+				output.add(row);
 			}
 
 		} // end of for - cell pointer

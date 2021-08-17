@@ -1,39 +1,10 @@
 package fqlite.base;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
-
-import fqlite.descriptor.AbstractDescriptor;
-import fqlite.descriptor.TableDescriptor;
-import fqlite.pattern.SerialTypeMatcher;
-import fqlite.types.CarverTypes;
-import fqlite.ui.DBTable;
-import fqlite.ui.HexView;
-import fqlite.ui.NodeObject;
-import fqlite.util.Auxiliary;
+import java.util.stream.Collectors;
 
 /**
  * The class analyzes a WAL-file and writes the found records into a file.
@@ -80,7 +51,7 @@ public class WALReaderCLI extends WALReaderBase {
 
 		String filename = "results" + name + date + ".csv";
 		
-		String[] lines = output.toArray(new String[0]);
+		String[] lines = output.stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
 		job.writeResultsToFile(filename,lines);
 	}
 }

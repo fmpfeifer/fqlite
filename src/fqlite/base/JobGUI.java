@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
@@ -368,9 +369,10 @@ public class JobGUI extends Job {
     }
     
     protected void linesReady() {
-        info("Number of records recovered: " + ll.size());
+        info("Number of records recovered: " + getRows().size());
 
-        String[] lines = ll.toArray(new String[0]);
+        //String[] lines = ll.toArray(new String[0]);
+        String[] lines = getRows().stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
         Arrays.sort(lines);
 
         TreePath path = null;

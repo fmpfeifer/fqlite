@@ -2,7 +2,6 @@ package fqlite.parser;
 
 import java.util.ArrayList;
 
-import fqlite.base.JobGUI;
 import fqlite.base.Job;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;

@@ -237,9 +237,9 @@ public class PageReader extends Base {
 		if (null == columns)
 			return null;
 
-		StringBuffer lineUTF = new StringBuffer();
+		SqliteRow row = new SqliteRow();
 		// String[] row = new String[columns.length]; // set to maximum page size
-		int co = 0;
+		//int co = 0;
 		String fp = null;
 		try {
 			fp = Auxiliary.getTableFingerPrint(columns);
@@ -253,7 +253,7 @@ public class PageReader extends Base {
 
 		boolean error = false;
 
-		lineUTF.append(((pagenumber - 1) * job.ps + buffer.position()) + ";");
+		row.setOffset((pagenumber - 1) * job.ps + buffer.position());
 
 		/* use the header information to reconstruct */
 		int pll = Auxiliary.computePayloadLengthS(header);
@@ -318,9 +318,9 @@ public class PageReader extends Base {
 
 				bf.get(value);
 
-				lineUTF.append(write(co, en, value));
+				row.append(new SqliteElementData(en, value));
 
-				co++;
+				//co++;
 			}
 
 			// set original buffer pointer to the end of the spilled payload
@@ -342,9 +342,9 @@ public class PageReader extends Base {
 				}
 				buffer.get(value);
 
-				lineUTF.append(write(co, en, value));
+				row.append(new SqliteElementData(en, value));
 
-				co++;
+				//co++;
 
 			}
 
@@ -359,12 +359,10 @@ public class PageReader extends Base {
 		debug("Besucht :: " + (((pagenumber - 1) * job.ps) + recordstart) + " bis " + cursor);
         
 		
-		lineUTF.append("\n");
-		
 		// if (!tables.containsKey(idxname))
 		// tables.put(idxname, new ArrayList<String[]>());
-		debug(lineUTF.toString());
-		return new CarvingResult(buffer.position(),cursor, lineUTF);
+		debug(row);
+		return new CarvingResult(buffer.position(),cursor, row);
 	}
 
 	public static String convertToUTF8(String s) {
@@ -375,25 +373,6 @@ public class PageReader extends Base {
 			return null;
 		}
 		return out;
-	}
-
-	/**
-	 * Converts a byte array into StringBuffer.
-	 * @param col   column number
-	 * @param en  the element to convert
-	 * @param value the actual value
-	 * @return  the converted StringBuffer value
-	 */
-	private StringBuffer write(int col, SqliteElement en, byte[] value) {
-
-		StringBuffer val = new StringBuffer();
-
-		if (col > 0)
-			val.append(";");
-
-		val.append(en.toString(value));
-
-		return val;
 	}
 
 	/**

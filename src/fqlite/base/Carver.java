@@ -149,15 +149,17 @@ public class Carver extends Base {
 						continue;
 					}
 
-					StringBuffer rc = res.bf;
+					SqliteRow row = res.row;
 
 					if (headertype > 1 && (res.rcursor + 4 <= toidx)) {
 						mat.region(res.rcursor + 4, toidx);
 					}
 
 					// add new line to output
-					if (null != rc) { // && rc.length() > 0) {
-						job.ll.add(tbd.tblname + ";" + Global.DELETED_RECORD_IN_PAGE + ";" + rc.toString());
+					if (null != row) { // && rc.length() > 0) {
+					    row.setTableName(tbd.tblname);
+					    row.setRecordType(Global.DELETED_RECORD_IN_PAGE);
+					    job.addRow(row);
 					}
 
 				} catch (Exception err) {

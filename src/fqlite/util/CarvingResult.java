@@ -1,5 +1,7 @@
 package fqlite.util;
 
+import fqlite.base.SqliteRow;
+
 /**
  * Container class. It is used to return some result from 
  * carving back to the calling thread. 
@@ -9,13 +11,13 @@ package fqlite.util;
  */
 public class CarvingResult {
 
-	public StringBuffer bf;
+	public SqliteRow row;
 	public int rcursor;
 	public int offset; 
 	
-	public CarvingResult(int rcursor,int offset, StringBuffer result)
+	public CarvingResult(int rcursor,int offset, SqliteRow result)
 	{
-		bf = result;
+		row = result;
 		this.rcursor = rcursor;
 		this.offset  = offset;
 	}

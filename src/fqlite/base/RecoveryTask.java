@@ -215,17 +215,18 @@ public class RecoveryTask extends Base implements Runnable {
 					Logger.out.debug(pagenumber + " -> " + celloff + " " + "0" + hls);
 				//}
 					
-				String rc;
+				SqliteRow row;
 				
-				rc = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
+				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
 								
 				// add new line to output
-				if (null != rc && rc.length() > 0) {
+				if (null != row) {
 					
 					int p;
-					if ((p = rc.indexOf("_node;")) > 0)
+					String tableName = row.getTableName();
+					if ((p = tableName.indexOf("_node;")) > 0)
 					{
-						String tbln = rc.substring(0, p);
+						String tbln = tableName.substring(0, p);
 						
 						if (job.virtualTables.containsKey(tbln))
 						{
@@ -234,14 +235,16 @@ public class RecoveryTask extends Base implements Runnable {
 							/* we use the xxx_node shadow component to construct the 
 							 * virtual component
 							 */
-							String BLOB = rc.substring(p);
+							//String BLOB = tableName.substring(p);
 							//System.out.println(BLOB);
 							
 							/* skip the first information -> go directly to the 5th element
 							 * of the data record line, i.e. go to the BLOB with the row data
 							 */
-							int pp = Auxiliary.findNthOccur(rc, ';', 4);
-							String data = rc.substring(pp+1);
+							//int pp = Auxiliary.findNthOccur(rc, ';', 4);
+							//String data = rc.substring(pp+1);
+
+							String data = row.getRowData().get(1).toString();
 						
 							/* transform String data into an byte array */
 							byte[] binary = Auxiliary.decode(data);
@@ -255,12 +258,14 @@ public class RecoveryTask extends Base implements Runnable {
                             /* create a new line for every data row */ 
                             while(entries>0)
                             {
-                        		StringBuffer vrow = new StringBuffer();
-    							vrow.append(tbln + ";VT;0;");  // start a new row for the virtual component 
+                                SqliteRow vrow = new SqliteRow();
+                                vrow.setTableName(tbln);
+                                vrow.setRecordType("VT");
+                                vrow.setOffset(0);
     					
                             	// The first column is always a 64-bit signed integer primary key.
                             	long primarykey = bf.getLong();
-                            	vrow.append(primarykey+";");
+                                vrow.append(new SqliteElementData(primarykey));
                             	
                             	//Each R*Tree indices is a virtual component with an odd number of columns between 3 and 11
                             	//The other columns are pairs, one pair per dimension, containing the minimum and maximum values for that dimension, respectively.
@@ -269,33 +274,33 @@ public class RecoveryTask extends Base implements Runnable {
                             	while (number > 0)
                             	{	
 	                            	float rv = bf.getFloat();
-	                            	vrow.append(rv + ";");
+	                                vrow.append(new SqliteElementData(rv));
 	                            	number--;
                             	}
-                            	
-	                            	
-	                            vrow.append("\n");
-                            	job.ll.add(vrow.toString());
+
+
+	                            //vrow.append("\n");
+                                //job.ll.add(vrow.toString());
+                                job.addRow(vrow);
 
     							info(vrow.toString());
-    							
+
     							entries--;
-	                            
+
                             }	
-							
-							
+
+
 						}
-						
+
 					}
 					
 					/* if record resides inside a free page -> add a flag char to document this */
 					if(freeList)
 					{    
-					   int idx = rc.indexOf(";");
-					   rc = rc.substring(0, idx) + ";"+ Global.FREELIST_ENTRY + rc.substring(idx+1);
+					   row.setRecordType(Global.FREELIST_ENTRY + row.getRecordType());
 					   
 					}
-					job.ll.add(rc);
+					job.addRow(row);
 				}
 
 			} // end of for - cell pointer
@@ -355,21 +360,22 @@ public class RecoveryTask extends Base implements Runnable {
 			if (ccrstart - buffer.position() > 3)
 			{
 				/* try to read record as usual */
-				String rc;
+				SqliteRow row;
 				
 				/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 				/* We should read until the end of the unallocated area and not above! */
-				rc = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
+				row = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
 				
 				// add new line to output
-				if (null != rc) { // && rc.length() > 0) {
+				if (null != row) { // && rc.length() > 0) {
 					
-					int idx = rc.indexOf(";");
-					rc = rc.substring(0, idx) + ";" + Global.DELETED_RECORD_IN_PAGE  + rc.substring(idx+1);
-					   					
+					//int idx = rc.indexOf(";");
+					//rc = rc.substring(0, idx) + ";" + Global.DELETED_RECORD_IN_PAGE  + rc.substring(idx+1);
+					row.setRecordType(Global.DELETED_RECORD_IN_PAGE + row.getRecordType());
 					
 					//if (job.doublicates.add(rc.hashCode()))
-					job.ll.add(rc);
+					//job.ll.add(rc);
+					job.addRow(row);
 				}
 				
 			}

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,7 +25,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -151,7 +155,9 @@ public class Job extends Base {
 	List<String> lines = new LinkedList<String>();
 	
 	/* this is a multi-threaded program -> all data are saved to the list first*/
-	protected ConcurrentLinkedQueue<String> ll = new ConcurrentLinkedQueue<String>();
+	private Queue<SqliteRow> ll = new ConcurrentLinkedQueue<>();
+
+	private SortedMap<String, List<SqliteRow>> tableRows = Collections.synchronizedSortedMap(new TreeMap<>());
 	
 	/* header fields */
 	
@@ -1688,6 +1694,24 @@ public class Job extends Base {
             e.printStackTrace();
         }
 
+    }
+
+    public void addRow(SqliteRow row) {
+        ll.add(row);
+        List<SqliteRow> tables = tableRows.get(row.getTableName());
+        if (null == tables) {
+            tables = Collections.synchronizedList(new ArrayList<>());
+            tableRows.put(row.getTableName(), tables);
+        }
+        tables.add(row);
+    }
+
+    public Queue<SqliteRow> getRows() {
+        return ll;
+    }
+
+    public synchronized List<SqliteRow> getRowsForTable(String tableName) {
+        return tableRows.get(tableName);
     }
 
 }

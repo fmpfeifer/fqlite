@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -115,7 +116,7 @@ public abstract class WALReaderBase extends Base {
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
-	ConcurrentLinkedQueue<String> output = new ConcurrentLinkedQueue<String>();
+	Queue<SqliteRow> output = new ConcurrentLinkedQueue<SqliteRow>();
 	
 
 	/**
@@ -559,11 +560,11 @@ public abstract class WALReaderBase extends Base {
 			String hls = Auxiliary.Int2Hex(celloff); 
 			hls.trim();
 			
-			String rc = null;
+			SqliteRow row = null;
 			
 
 			try { 
-				rc = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -571,15 +572,16 @@ public abstract class WALReaderBase extends Base {
 			/* adding WAL-Frame fields to output line */
 			
 			String info = frame.committed + "," + frame.pagenumber + "," + frame.framenumber + "," + frame.salt1 + "," +  frame.salt2;
-			rc = rc + "#walframe#" + info;
+			row.setLineSuffix("#walframe#" + info);
 			//System.out.println("***********  " + rc);
 					
 			// add new line to output
-			if (null != rc && rc.length() > 0) {
+			if (null != row) {
 
 				int p1;
-				if ((p1 = rc.indexOf("_node;")) > 0) {
-					String tbln = rc.substring(0, p1);
+				String tableName = row.getTableName();
+				if ((p1 = tableName.indexOf("_node;")) > 0) {
+					String tbln = tableName.substring(0, p1);
 
 					if (job.virtualTables.containsKey(tbln)) {
 						TableDescriptor tds = job.virtualTables.get(tbln);
@@ -594,8 +596,8 @@ public abstract class WALReaderBase extends Base {
 						 * skip the first information -> go directly to the 5th element of the data
 						 * record line, i.e. go to the BLOB with the row data
 						 */
-						int pp = Auxiliary.findNthOccur(rc, ';', 4);
-						String data = rc.substring(pp + 1);
+						//int pp = Auxiliary.findNthOccur(rc, ';', 4);
+						String data = row.getRowData().get(1).toString();
 
 						/* transform String data into an byte array */
 						byte[] binary = Auxiliary.decode(data);
@@ -608,12 +610,16 @@ public abstract class WALReaderBase extends Base {
 
 						/* create a new line for every data row */
 						while (entries > 0) {
-							StringBuffer vrow = new StringBuffer();
-							vrow.append(tbln + ";VT;0;"); // start a new row for the virtual component
+							SqliteRow vrow = new SqliteRow();
+							vrow.setTableName(tbln);
+							vrow.setRecordType("VT");
+							vrow.setOffset(0);
+							//vrow.append(tbln + ";VT;0;"); // start a new row for the virtual component
 
 							// The first column is always a 64-bit signed integer primary key.
 							long primarykey = bf.getLong();
-							vrow.append(primarykey + ";");
+							//vrow.append(primarykey + ";");
+							vrow.append(new SqliteElementData(primarykey));
 
 							// Each R*Tree indices is a virtual component with an odd number of columns
 							// between 3 and 11
@@ -623,12 +629,13 @@ public abstract class WALReaderBase extends Base {
 
 							while (number > 0) {
 								float rv = bf.getFloat();
-								vrow.append(rv + ";");
+								//vrow.append(rv + ";");
+								vrow.append(new SqliteElementData(rv));
 								number--;
 							}
 
-							vrow.append("\n");
-							output.add(vrow.toString());
+							//vrow.append("\n");
+							output.add(vrow);
 
 							//System.out.println(vrow);
 
@@ -642,7 +649,7 @@ public abstract class WALReaderBase extends Base {
 				//rc = frame.framenumber + ";" + frame.pagenumber + ";" + frame.salt1 + ";" + rc;
 
 				
-				output.add(rc);
+				output.add(row);
 			}
 
 		} // end of for - cell pointer
@@ -707,21 +714,23 @@ public abstract class WALReaderBase extends Base {
 		if (ccrstart - buffer.position() > 3)
 		{
 			/* try to read record as usual */
-			String rc;
+			SqliteRow row;
 			
 			/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 			/* We should read until the end of the unallocated area and not above! */
-			rc = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
+			row = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
 			
 			// add new line to output
-			if (null != rc) { // && rc.length() > 0) {
+			if (null != row) { // && rc.length() > 0) {
 				
-				int idx = rc.indexOf(";");
-				rc = rc.substring(0, idx) + ";" + Global.DELETED_RECORD_IN_PAGE  + rc.substring(idx+1);
+				//int idx = rc.indexOf(";");
+				//rc = rc.substring(0, idx) + ";" + Global.DELETED_RECORD_IN_PAGE  + rc.substring(idx+1);
+				row.setRecordType(Global.DELETED_RECORD_IN_PAGE + row.getRecordType());
 				   					
 				
 				//if (job.doublicates.add(rc.hashCode()))
-				job.ll.add(rc);
+				//job.ll.add(rc);
+				job.addRow(row);
 			}
 			
 		}

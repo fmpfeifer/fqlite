@@ -28,31 +28,59 @@ public class SqliteElement {
 	}
 
 	public final String toString(byte[] value) {
-				
-		if (type == SerialTypes.INT0)
-			return String.valueOf(0);
-		else if (type == SerialTypes.INT1)
-			return String.valueOf(1);
-		else if (value.length == 0)
-			return "";
-		else if (type == SerialTypes.STRING)
-			return decodeString(value).toString();
-		else if (type == SerialTypes.INT8)
-			return String.valueOf(decodeInt8(value[0]));
-		else if (type == SerialTypes.INT16)
-			return String.valueOf(decodeInt16(value));
-		else if (type == SerialTypes.INT24)
-			return String.valueOf(decodeInt24(value));
-		else if (type == SerialTypes.INT32)
-			return String.valueOf(decodeInt32(value));
-		else if (type == SerialTypes.INT48)
-			return String.valueOf(decodeInt48(value));
-		else if (type == SerialTypes.INT64)
-			return String.valueOf(decodeInt64(value));
-		else if (type == SerialTypes.FLOAT64)
-			return String.valueOf(decodeFloat64(value));
-		else if (type == SerialTypes.BLOB)
-			return String.valueOf(Auxiliary.bytesToHex(value));
+
+	    if (value.length == 0 && type != SerialTypes.INT0 && type != SerialTypes.INT1) {
+	        return "";
+	    }
+
+	    switch (type) {
+	        case INT0:
+	            return "0";
+	        case INT1:
+	            return "1";
+	        case STRING:
+	            return decodeString(value).toString();
+	        case INT8:
+	            return String.valueOf(decodeInt8(value[0]));
+	        case INT16:
+	            return String.valueOf(decodeInt16(value));
+	        case INT24:
+	            return String.valueOf(decodeInt24(value));
+	        case INT32:
+	            return String.valueOf(decodeInt32(value));
+	        case INT48:
+	        case INT64:
+	            long lValue;
+	            if (type == SerialTypes.INT48) {
+	                lValue = decodeInt48(value);
+	            } else {
+	                lValue = decodeInt64(value);
+	            }
+	            if (Global.CONVERT_DATETIME) {
+	                String strDateTime = DatetimeConverter.isUnixEpoch(lValue);
+	                if (null != strDateTime)
+	                {
+	                    return strDateTime;
+	                }
+	            }
+	            return String.valueOf(lValue);
+	        case FLOAT64:
+	            double dValue = decodeFloat64(value);
+	            if (Global.CONVERT_DATETIME) {
+	                String strDateTime = DatetimeConverter.isMacAbsoluteTime(dValue);
+	                if (null != strDateTime) {
+	                    return strDateTime;
+	                }
+	            }
+	            return String.format("%.8f", dValue);
+	        case BLOB:
+	            return String.valueOf(Auxiliary.bytesToHex(value));
+	        case PRIMARY_KEY:
+	            return String.valueOf(decodeInt64(value));
+            case NOTUSED1:
+            case NOTUSED2:
+	    }
+
 		return null;
 
 	}
@@ -66,7 +94,7 @@ public class SqliteElement {
 		return bf.getShort();
 	}
 
-	final int decodeInt24(byte[] v) {
+	final static int decodeInt24(byte[] v) {
 		int result = int24bytesToUInt(v);
 		return result;
 	}
@@ -84,10 +112,10 @@ public class SqliteElement {
 		return bf.getInt();
 	}
 
-	final static String decodeInt48(byte[] v) {
+	final static long decodeInt48(byte[] v) {
 		// we have to read 6 Bytes
 		if (v.length < 6)
-			return "00";
+			return 0;
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		byte[] value = bf.array();
 		byte[] converted = new byte[8];
@@ -99,31 +127,12 @@ public class SqliteElement {
  
        // bf.order(ByteOrder.BIG_ENDIAN);
 			
-		long z = result.getLong();
-					
-		if (Global.CONVERT_DATETIME) {
-    		String strDateTime = DatetimeConverter.isUnixEpoch(z);
-    		if (null != strDateTime)
-    		{
-    			return strDateTime;
-    		}
-		}
-		return Long.toString(z);
+		return result.getLong();
 	}
 
-	final static String decodeInt64(byte[] v) {
+	final static long decodeInt64(byte[] v) {
 		ByteBuffer bf = ByteBuffer.wrap(v);
-		long z = bf.getLong();
-
-		if (Global.CONVERT_DATETIME) {
-    		String strDateTime = DatetimeConverter.isUnixEpoch(z);
-    		if (null != strDateTime)
-    		{
-    			return strDateTime;
-    		}
-		}
-		
-		return Long.toString(z);
+		return bf.getLong();
 	}
 
 	final static String convertToDate(long value) {
@@ -132,22 +141,10 @@ public class SqliteElement {
 		return dateFormat.format(d);
 	}
 
-	final static String decodeFloat64(byte[] v) {
+	final static double decodeFloat64(byte[] v) {
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		
-		double d = bf.getDouble();
-		
-		//if(d > 600000000)
-		//{
-			//System.out.println("MAC-Time gefunden " + d);
-		//}
-		if (Global.CONVERT_DATETIME) {
-		    String strDateTime = DatetimeConverter.isMacAbsoluteTime(d);
-    		if (null != strDateTime) {
-    		    return strDateTime;
-    		}
-		}
-		return String.format("%.8f", d);
+		return bf.getDouble();
 	}
 
 	final static CharBuffer decodeString(byte[] v) {

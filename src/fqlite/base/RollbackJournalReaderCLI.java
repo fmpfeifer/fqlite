@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 /**
  * The class analyses a Rollback Journal file and writes the found records into a file.
@@ -48,7 +49,7 @@ public class RollbackJournalReaderCLI extends RollbackJournalReaderBase {
 
 		String filename = "results" + name + date + ".csv";
 		
-		String[] lines = output.toArray(new String[0]);
+		String[] lines = output.stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
 		job.writeResultsToFile(filename, lines);	
 	}
 }
