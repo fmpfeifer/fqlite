@@ -41,7 +41,6 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -1247,7 +1246,7 @@ public class GUI extends JFrame {
 					 			
 			case 101 :  // wal 
 					    
-			            lines = no.job.getRows().stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
+			            lines = no.job.getRows().stream().map(SqliteRow::toString).toArray(String[]::new);
 				        //lines = no.job.ll.toArray(new String[0]);
 				        	
 						break;

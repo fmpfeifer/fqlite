@@ -1,7 +1,5 @@
 package fqlite.base;
 
-import java.util.stream.Collectors;
-
 import fqlite.util.Logger;
 
 
@@ -12,7 +10,7 @@ public class JobCLI extends Job {
     }
     
     protected void linesReady() {
-        String[] lines = getRows().stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
+        String[] lines = getRows().stream().map(SqliteRow::toString).toArray(String[]::new);
         // String[] lines = ll.toArray(new String[0]);
         writeResultsToFile(null, lines);
 

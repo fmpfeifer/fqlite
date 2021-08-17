@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 /**
  * The class analyzes a WAL-file and writes the found records into a file.
@@ -51,7 +50,7 @@ public class WALReaderCLI extends WALReaderBase {
 
 		String filename = "results" + name + date + ".csv";
 		
-		String[] lines = output.stream().map(SqliteRow::toString).collect(Collectors.toList()).toArray(new String[0]);
+		String[] lines = output.stream().map(SqliteRow::toString).toArray(String[]::new);
 		job.writeResultsToFile(filename,lines);
 	}
 }
