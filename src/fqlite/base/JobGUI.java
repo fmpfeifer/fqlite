@@ -101,7 +101,7 @@ public class JobGUI extends Job {
 	
 	public String[][] getRollbackHeaderProperties()
 	{
-		String [][] prop = {{"0","HeaderString",RollbackJournalReaderCLI.MAGIC_HEADER_STRING},
+		String [][] prop = {{"0","HeaderString",RollbackJournalReaderBase.MAGIC_HEADER_STRING},
 				{"8","number of pages",String.valueOf(rol.pagecount)},
 				{"12","nounce for checksum",String.valueOf(rol.nounce)},
 				{"16","pages",String.valueOf(rol.pages)},
