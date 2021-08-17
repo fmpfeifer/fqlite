@@ -24,15 +24,14 @@ public class SqliteElementData {
     }
     
     public SqliteElementData(long data) {
-        this.column = new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8);
+        this(new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8), data);
+    }
+    
+    public SqliteElementData(SqliteElement column, long data) {
+        this.column = column;
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(data);
         this.data = buffer.array();
-    }
-    
-    public SqliteElementData(SqliteElement column, long rowId) {
-        this(rowId);
-        this.column = column;
     }
     
     public SqliteElementData(double data) {

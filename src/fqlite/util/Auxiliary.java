@@ -660,7 +660,7 @@ public class Auxiliary extends Base {
 				        //lineUTF.append(write(co, en, value));
 
 				    } catch (java.nio.BufferUnderflowException bue) {
-    					err("readRecord():: overflow" + "java.nio.BufferUnderflowException");
+    					err("readRecord():: overflow java.nio.BufferUnderflowException");
     				}
 				}
 
