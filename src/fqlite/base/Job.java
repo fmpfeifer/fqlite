@@ -608,19 +608,9 @@ public class Job extends Base {
 							bbb = readPageWithNumber(pagenumber, ps);
 						else
 						{
-							
 							starthere = (int) ((index - 32) % (ps + 24));
-
-							
-							byte [] pp = new byte[ps];
-							bb.position(32 + 24 + index/ps);
-							bb.get(pp,0,ps);
-							bbb = ByteBuffer.wrap(pp);
-							starthere = (int) ((index-32) % (ps+24));
-
-						}
-	
-						if (db_encoding == StandardCharsets.UTF_8)
+						    bbb = bb.allocateAndReadBuffer(32 + 24 + index/ps, ps);
+						} if (db_encoding == StandardCharsets.UTF_8)
 							c.readMasterTableRecord(this, starthere - 13, bbb, headerStr);
 						else
 							c.readMasterTableRecord(this, starthere - 17, bbb, headerStr);
@@ -696,12 +686,8 @@ public class Job extends Base {
 								starthere = (int) ((index2 - 32) % (ps + 24) + 24);
 							}
 							
-							byte [] pp = new byte[ps];
 							/* go to frame start */
-					
-							bb.position(pagebegin);
-							bb.get(pp,0,ps);
-							bbb = ByteBuffer.wrap(pp);
+						    bbb = bb.allocateAndReadBuffer(pagebegin, ps);
 							
 							Logger.out.info("index match " + index2);
 
@@ -757,12 +743,8 @@ public class Job extends Base {
 								starthere = (int) ((index2 - 32) % (ps + 24) + 24);
 							}
 							
-							byte [] pp = new byte[ps];
 							/* go to frame start */
-					
-							bb.position(pagebegin);
-							bb.get(pp,0,ps);
-							bbb = ByteBuffer.wrap(pp);
+							bbb = bb.allocateAndReadBuffer(pagebegin, ps);
 							
 							Logger.out.info("index match " + index2);
 
@@ -1163,12 +1145,8 @@ public class Job extends Base {
 				starthere = (int) ((index - 32) % (ps + 24) + 24);
 			}
 			
-			byte [] pp = new byte[ps];
 			/* go to frame start */
-	
-			file.position(pagebegin);
-			file.get(pp,0,ps);
-			bbb = ByteBuffer.wrap(pp);
+			bbb = file.allocateAndReadBuffer(pagebegin, ps);
 			
 			Logger.out.info("index match " + index);
 
@@ -1425,8 +1403,7 @@ public class Job extends Base {
 			
 			return null;
 		}
-		ByteBuffer page = file.allocateAndReadBuffer(offset, pagesize);
-		return page;
+		return file.allocateAndReadBuffer(offset, pagesize);
 	}
 
 	/**
@@ -1444,7 +1421,7 @@ public class Job extends Base {
 		{
 		   return null;
 		}
-		return readPageWithOffset(pagenumber*pagesize,pagesize);
+		return readPageWithOffset(pagenumber*pagesize, pagesize);
 	}
 	
 
