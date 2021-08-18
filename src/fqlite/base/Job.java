@@ -1113,17 +1113,20 @@ public class Job extends Base {
 			System.exit(-1);
 		}
 
-		for (Closeable c : resourcesToClose) {
+		closeResources();
+
+		return 0;
+	}
+
+	protected void closeResources() {
+	    for (Closeable c : resourcesToClose) {
             try {
                 c.close();
             } catch (IOException e) {
                 err(e.toString());
             }
         }
-
-		return 0;
 	}
-
 
 	private void readSchema(RandomAccessFileReader file, long index, String headerStr, boolean readWAL) throws IOException
 	{

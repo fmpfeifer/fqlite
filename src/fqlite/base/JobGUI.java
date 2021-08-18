@@ -426,6 +426,12 @@ public class JobGUI extends Job {
 			super.err("ERROR: " + message);
 	}
 	
+	@Override
+	protected void closeResources() {
+	    // Do not close files when in GUI mode, as it may be necessary to read data from
+	    // the files
+	}
+	
 	/**
 	 *	 
 	 */
