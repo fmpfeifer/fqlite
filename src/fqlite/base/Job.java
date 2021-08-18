@@ -5,7 +5,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,6 +44,7 @@ import fqlite.descriptor.TableDescriptor;
 import fqlite.util.Auxiliary;
 import fqlite.util.ByteSeqSearcher;
 import fqlite.util.Logger;
+import fqlite.util.RandomAccessFileReader;
 
 
 /*
@@ -115,9 +115,6 @@ Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * @version 1.2
  */
 public class Job extends Base {
-
-	/* the byte buffer representing the database file in RAM */
-	public ByteBuffer db;
 	
 	/* since version 1.2 - support for write ahead logs WAL */
 	public boolean readWAL = false;
@@ -139,14 +136,11 @@ public class Job extends Base {
 	final static String ROW_ID = "00";
 	
 	
-	/* size of file */
-	long size = 0;
-	
 	/* path - used to locate a file in a file system */
 	String path;
 	
 	/* A channel for reading, writing, and manipulating the database file. */
-	protected FileChannel file;
+	public RandomAccessFileReader file;
 	
 	/* this field represent the database encoding */
 	public static Charset db_encoding = StandardCharsets.UTF_8;
@@ -225,26 +219,12 @@ public class Job extends Base {
 	  
 	/******************************************************************************************************/
 	
-	/**
-	 * This method is used to read the database file into RAM.
-	 * @return a read-only ByteBuffer representing the db content
-	 * @throws IOException
-	 */
-	private void readFileIntoBuffer() throws IOException {
-		/* read the complete file into a ByteBuffer */
-		size = file.size();
-		
-		db = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
-		
-		// set file pointer to begin of the file
-		db.position(0);
-
-	}
-	
-	
-	private ByteBuffer readWALIntoBuffer(String walpath) throws IOException {
+	private RandomAccessFileReader readWAL(String walpath) throws IOException {
 		
 		Path p = Paths.get(walpath);
+		if (! Files.exists(p)) {
+		    return null;
+		}
 
 		/* First - try to analyze the db-schema */
 		/*
@@ -253,21 +233,10 @@ public class Job extends Base {
 		 */
 
 		/* try to open the wal-file in read-only mode */
-		file = FileChannel.open(p, StandardOpenOption.READ);
+		RandomAccessFileReader file = new RandomAccessFileReader(p);
 		resourcesToClose.addFirst(file);
+		return file;
 		
-		if(null == file)
-			return null;
-		
-		/* read the complete file into a ByteBuffer */
-		size = file.size();
-		
-		ByteBuffer bb = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
-		
-		// set file pointer to begin of the file
-		bb.position(0);
-
-		return bb;
 	}
 	
 	protected void tableDescriptorReady(TableDescriptor td) {
@@ -279,7 +248,7 @@ public class Job extends Base {
 	protected void unassignedTableCreated(TableDescriptor td) {
 	}
 	
-	protected void linesReady() {
+	protected void linesReady() throws IOException {
 	}
 			
 	/**
@@ -304,15 +273,11 @@ public class Job extends Base {
 			 */
 
 			/* try to open the db-file in read-only mode */
-			file = FileChannel.open(p, StandardOpenOption.READ);
+			file = new RandomAccessFileReader(p);
 			resourcesToClose.add(file);
 
-			readFileIntoBuffer();
-			
 			/* read header of the sqlite db - the first 100 bytes */
-			ByteBuffer buffer = db.slice();
-			buffer.position(0);
-			buffer.limit(100);
+			ByteBuffer buffer = file.allocateAndReadBuffer(100);
 
 			/* The first 100 bytes of the database file comprise the database file header. 
 			 * The database file header is divided into fields as shown by the table below. 
@@ -578,7 +543,7 @@ public class Job extends Base {
 			
 			boolean again = false;
 			int round = 0;
-			ByteBuffer bb = db;
+			RandomAccessFileReader bb = file;
 			
 			/**
 			 * Step into loop
@@ -596,7 +561,7 @@ public class Job extends Base {
 				if (round == 2 && !readWAL)
 					break;
 				
-				int index = bsearch.indexOf(bb, 0);
+				long index = bsearch.indexOf(bb, 0);
 	
 				/* search as long as we can find further table keywords */
 				while (index != -1) {
@@ -635,8 +600,8 @@ public class Job extends Base {
 						headerStr = headerStr.substring(0, 14);
 	
 						// compute offset
-						int starthere = index % ps;
-						int pagenumber = index / ps;
+						int starthere = (int)(index % ps);
+						int pagenumber = (int)(index / ps);
 	
 						ByteBuffer bbb = null;
 						if (round == 1)
@@ -644,14 +609,14 @@ public class Job extends Base {
 						else
 						{
 							
-							starthere = (index - 32) % (ps + 24);
+							starthere = (int) ((index - 32) % (ps + 24));
 
 							
 							byte [] pp = new byte[ps];
 							bb.position(32 + 24 + index/ps);
 							bb.get(pp,0,ps);
 							bbb = ByteBuffer.wrap(pp);
-							starthere = (index-32) % (ps+24);
+							starthere = (int) ((index-32) % (ps+24));
 
 						}
 	
@@ -677,7 +642,7 @@ public class Job extends Base {
 				/* to mark the start of an indices entry for the sqlmaster_table */
 				ByteSeqSearcher bisearch = new ByteSeqSearcher(ipattern);
 	
-				int index2 = bisearch.indexOf(bb, 0);
+				long index2 = bisearch.indexOf(bb, 0);
 	
 				/* search as long as we can find further index keywords */
 				while (index2 != -1) {
@@ -704,8 +669,8 @@ public class Job extends Base {
 						headerStr = headerStr.substring(0, 14);
 	
 						// compute offset
-						int starthere = index2 % ps;
-						int pagenumber = index2 / ps;
+						int starthere = (int) (index2 % ps);
+						int pagenumber = (int) (index2 / ps);
 	
 						ByteBuffer bbb = null;
 						if (round == 1)
@@ -717,18 +682,18 @@ public class Job extends Base {
 						else
 						{
 							
-							int pagebegin = 0;
+							long pagebegin = 0L;
 							// first page ?
 							if (index2 < (ps + 56))
 							{
 								// skip WAL header (32 Bytes) and frame header (24 Bytes)
 								pagebegin = 56;
-								starthere  = index2 - 56;
+								starthere  = (int) (index2 - 56);
 							}
 							else
 							{
-							    pagebegin = ((index2 - 32) / (ps + 24)) * (ps + 24) - 24 + 32;     
-								starthere = (index2 - 32) % (ps + 24) + 24;			
+							    pagebegin = ((index2 - 32) / (ps + 24)) * (ps + 24) - 24 + 32;
+								starthere = (int) ((index2 - 32) % (ps + 24) + 24);
 							}
 							
 							byte [] pp = new byte[ps];
@@ -767,8 +732,8 @@ public class Job extends Base {
 						headerStr = headerStr.substring(0, 14);
 	
 						// compute offset
-						int starthere = index2 % ps;
-						int pagenumber = index2 / ps;
+						int starthere = (int) (index2 % ps);
+						int pagenumber = (int) (index2 / ps);
 	
 						ByteBuffer bbb = null;
 						if (round == 1)
@@ -778,18 +743,18 @@ public class Job extends Base {
 						else
 						{
 							
-							int pagebegin = 0;
+							long pagebegin = 0;
 							// first page ?
 							if (index2 < (ps + 56))
 							{
 								// skip WAL header (32 Bytes) and frame header (24 Bytes)
 								pagebegin = 56;
-								starthere  = index2 - 56;
+								starthere  = (int) (index2 - 56);
 							}
 							else
 							{
-							    pagebegin = ((index2 - 32) / (ps + 24)) * (ps + 24) - 24 + 32;      
-								starthere = (index2 - 32) % (ps + 24) + 24;			
+							    pagebegin = ((index2 - 32) / (ps + 24)) * (ps + 24) - 24 + 32;
+								starthere = (int) ((index2 - 32) % (ps + 24) + 24);
 							}
 							
 							byte [] pp = new byte[ps];
@@ -832,7 +797,7 @@ public class Job extends Base {
 					
 				    info("Could not find a schema definition inside the main db-file. Try to find something inside the WAL archive");
 				
-				    bb = readWALIntoBuffer(this.path+"-wal");
+				    bb = readWAL(this.path+"-wal");
 				    
 				    if (null != bb)
 				    	again = true;
@@ -1041,10 +1006,7 @@ public class Job extends Base {
 
 				do {
 					/* reserve space for the first/next page of the free list */
-				    db.position(0);
-					ByteBuffer fplist = db.slice();
-					fplist.position(start);
-					fplist.limit(start + ps);
+					ByteBuffer fplist = file.allocateAndReadBuffer(0, ps);
 
 					// next (possible) freepage list offset or 0xh00000000 + number of entries
 					// example : 00 00 15 3C | 00 00 02 2B
@@ -1150,20 +1112,20 @@ public class Job extends Base {
 			info("Error: Could not open file.");
 			System.exit(-1);
 		}
-		
+
 		for (Closeable c : resourcesToClose) {
-		    try {
+            try {
                 c.close();
             } catch (IOException e) {
                 err(e.toString());
             }
-		}
+        }
 
 		return 0;
 	}
-	
-	
-	private void readSchema(ByteBuffer bb, int index, String headerStr, boolean readWAL) throws IOException
+
+
+	private void readSchema(RandomAccessFileReader file, long index, String headerStr, boolean readWAL) throws IOException
 	{
 		
 		Logger.out.info("Entering readSchema()");
@@ -1172,8 +1134,8 @@ public class Job extends Base {
 		Auxiliary c = new Auxiliary(this);
 		
 		// compute offset
-		int starthere = index % ps;
-		int pagenumber = index / ps;
+		int starthere = (int) (index % ps);
+		int pagenumber = (int) (index / ps);
 
 		ByteBuffer bbb = null;
 		/* first try to read the db schema from the main db file */
@@ -1184,25 +1146,25 @@ public class Job extends Base {
 		/* No schema was found? Try reading the WAL file instead */
 		else
 		{
-			int pagebegin = 0;
+			long pagebegin = 0;
 			// first page ?
 			if (index < (ps + 56))
 			{
 				// skip WAL header (32 Bytes) and frame header (24 Bytes)
 				pagebegin = 56;
-				starthere  = index - 56;
+				starthere  = (int) (index - 56);
 			}
 			else
 			{
 			    pagebegin = ((index - 32) / (ps + 24)) * (ps + 24) - 24 + 32;      //32 + (ps+24)*index/(ps+24) + 24;
-				starthere = (index - 32) % (ps + 24) + 24;			
+				starthere = (int) ((index - 32) % (ps + 24) + 24);
 			}
 			
 			byte [] pp = new byte[ps];
 			/* go to frame start */
 	
-			bb.position(pagebegin);
-			bb.get(pp,0,ps);
+			file.position(pagebegin);
+			file.get(pp,0,ps);
 			bbb = ByteBuffer.wrap(pp);
 			
 			Logger.out.info("index match " + index);
@@ -1435,7 +1397,7 @@ public class Job extends Base {
 		return hashcode;
 	}
 
-	protected String readPageAsString(int pagenumber, int pagesize) {
+	protected String readPageAsString(int pagenumber, int pagesize) throws IOException {
 
 		return Auxiliary.bytesToHex(readPageWithNumber(pagenumber, pagesize).array());
 
@@ -1447,21 +1409,20 @@ public class Job extends Base {
 	 * @param offset
 	 * @param pagesize
 	 * @return  A <code>ByteBuffer</code> object containing the page content. 
+	 * @throws IOException 
 	 */
-	public ByteBuffer readPageWithOffset(long offset, int pagesize) {
+	public ByteBuffer readPageWithOffset(long offset, int pagesize) throws IOException {
 
-		if ((offset > db.limit()) || (offset < 0))
+		if ((offset > file.size()) || (offset < 0))
 		{
 			
-			Logger.out.info(" offset greater than file size ?!" + offset + " > " + db.limit());
+			Logger.out.info(" offset greater than file size ?!" + offset + " > " + file.size());
 			Auxiliary.printStackTrace();
 			
 			
 			return null;
 		}
-		db.position((int)offset);
-		ByteBuffer page = db.slice();
-		page.limit(pagesize);
+		ByteBuffer page = file.allocateAndReadBuffer(offset, pagesize);
 		return page;
 	}
 
@@ -1472,8 +1433,9 @@ public class Job extends Base {
 	 * @param pagenumber (>=1)
 	 * @param pagesize
 	 * @return  A <code>ByteBuffer</code> object containing the page content. 
+	 * @throws IOException 
 	 */
-	public ByteBuffer readPageWithNumber(int pagenumber, int pagesize) {
+	public ByteBuffer readPageWithNumber(long pagenumber, int pagesize) throws IOException {
 		
 		if (pagenumber < 0)
 		{
@@ -1515,8 +1477,8 @@ public class Job extends Base {
 		
 		
 		// first two bytes of page
-		db.position(offset);
-		byte pageType = db.get(); 		
+		file.position(offset);
+		byte pageType = file.get();
 
 		/* check type of the page by reading the first two bytes */
 		int typ = Auxiliary.getPageType(Auxiliary.bytesToHex(new byte [] { pageType } ));
@@ -1531,13 +1493,9 @@ public class Job extends Base {
 		else if (typ == 12) {
 			debug("page number " + root + " is a interior data page ");
 
-			byte [] rightChildByteArray = new byte[4];
-			db.position(offset + 8);
-			db.get(rightChildByteArray);
-			ByteBuffer rightChildptr = ByteBuffer.wrap(rightChildByteArray);
+			ByteBuffer rightChildptr = file.allocateAndReadBuffer(offset + 8, 4);
 			
 			/* recursive */
-			rightChildptr.position(0);
 			exploreBTree(rightChildptr.getInt(), td);
 
 			/* now we have to read the cell pointer list with offsets for the other pages */
@@ -1713,7 +1671,6 @@ public class Job extends Base {
     public synchronized List<SqliteRow> getRowsForTable(String tableName) {
         return tableRows.get(tableName);
     }
-
 }
 
 

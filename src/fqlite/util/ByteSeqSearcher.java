@@ -1,7 +1,7 @@
 package fqlite.util;
 
 
-import java.nio.ByteBuffer;
+import java.io.IOException;
 import java.util.Arrays;
 
 /**
@@ -38,11 +38,12 @@ public class ByteSeqSearcher{
 	    /**
 	     * Searches for the next occurrence of the pattern in the buffer
 	     * starting startRegion the given position
+	     * @throws IOException
 	     */
-	     public int indexOf(ByteBuffer buffer, int start)
+	     public long indexOf(RandomAccessFileReader file, long start) throws IOException
 	     {
-	    	buffer.position(start);
-	    	return indexOf(buffer);
+	         file.position(start);
+	         return indexOf(file);
 	     }
 
 	    
@@ -54,16 +55,16 @@ public class ByteSeqSearcher{
 	     *
 	     * @return bytes consumed if found, -1 otherwise.
 	     */
-	    public int indexOf(ByteBuffer buffer) 
+	    public long indexOf(RandomAccessFileReader file) throws IOException
 	    {
 	    	//int size = buffer.capacity() - buffer.position();
 	        
 	        int b;
 	        int j = 0;
 
-	        while (buffer.position() < buffer.limit())
+	        while (file.position() < file.size())
 	        {
-	        	b = buffer.get();
+	            b = file.get();
 	         
 	            while (j >= 0 && (byte) b != pattern_[j])
 	            {
@@ -77,7 +78,7 @@ public class ByteSeqSearcher{
 	            // following the pattern match.
 	            if (j == pattern_.length)
 	            {
-	                return buffer.position();
+	                return file.position();
 	            }
 	        }
 

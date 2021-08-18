@@ -2,10 +2,8 @@ package fqlite.base;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +16,7 @@ import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
 import fqlite.util.Auxiliary;
 import fqlite.util.Logger;
+import fqlite.util.RandomAccessFileReader;
 
 /**
  * The class analyses a Rollback Journal file and writes the found records into a file.
@@ -38,13 +37,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	public static final String MAGIC_HEADER_STRING = "d9d505f920a163d7";
 	
 	/* An asynchronous channel for reading, writing, and manipulating a file. */
-	public FileChannel file;
-
-	/* This buffer holds RollbackJournal-file in RAM */
-	protected ByteBuffer rollbackjournal;
-
-	/* total size of RollbackJournal-file in bytes */
-	long size;
+	public RandomAccessFileReader file;
 
 	/* pagesize */
 	int ps;
@@ -108,8 +101,9 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * Afterwards all write ahead frames are recovered.
 	 * 
 	 * @return
+	 * @throws IOException
 	 */
-	public void parse() {
+	public void parse() throws IOException {
 		Path p = Paths.get(path);
 
 		
@@ -120,32 +114,20 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 		/* try to open the db-file in read-only mode */
 		try {
-			file = FileChannel.open(p, StandardOpenOption.READ);
+			file = new RandomAccessFileReader(p);
 		} catch (Exception e) {
             this.err("Cannot open RollbackJournal-file" + p.getFileName());
 			return;
 		}
 
-		/** Caution!!! we read the complete file into RAM **/
-		try {
-			readFileIntoBuffer();
-		} catch (IOException e) {
-
-			e.printStackTrace();
+		if(file.size() <= 512)
+		{
+			info("RollbackJournal-File is empty. Skip analyzing.");
+				return;
 		}
-		
-		try {
-			if(file.size() <= 512)
-			{	
-				info("RollbackJournal-File is empty. Skip analyzing.");
-					return;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}	
-		
-		
-		
+
+
+
 		/*
 		 * In practice when a transaction is committed it seems that the journal 
 		 * header is normally zeroed and the data in the journal remains. 
@@ -169,9 +151,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 		 */
 		
 		/* read header of the WAL file - the first 28 bytes */
-		ByteBuffer header = rollbackjournal.slice();
-		header.position(0);
-		header.limit(28);
+		ByteBuffer header = file.allocateAndReadBuffer(0, 28);
 
 		byte head[] = new byte[8];
 		header.get(head);
@@ -217,10 +197,10 @@ public abstract class RollbackJournalReaderBase extends Base {
 		int numberofpages = 0;
 		do
 		{
-			rollbackjournal.position(journalpointer);
+			file.position(journalpointer);
 			/* get the page number of the journal page in main db */
 			
-		    pagenumber_maindb = rollbackjournal.getInt();
+		    pagenumber_maindb = file.allocateAndReadBuffer(4).getInt();
 			debug("pagenumber of journal-entry " + pagenumber_maindb);
 			
 	
@@ -240,7 +220,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			//System.out.println(" Position in RollbackJournal-file " + journalpointer + " " );
 			
 			/*  More pages to analyze ? */
-			if(journalpointer + ps  <= size)
+			if(journalpointer + ps  <= file.size())
 			{
 				next = true;
 			}
@@ -323,7 +303,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			withoutROWID = true;
 
 		} else {
-			info("Data page " + pagenumber_rol+ " Offset: " + (rollbackjournal.position() - ps));
+			info("Data page " + pagenumber_rol+ " Offset: " + (file.position() - ps));
 		}
 
 		/************** regular leaf page with data ******************/
@@ -514,23 +494,6 @@ public abstract class RollbackJournalReaderBase extends Base {
 		return true;
 	}
 
-	/**
-	 * This method is used to read the database file into RAM.
-	 * 
-	 * @return a read-only ByteBuffer representing the RollbackJournal file content
-	 * @throws IOException
-	 */
-	private void readFileIntoBuffer() throws IOException {
-
-		/* read the complete file into a ByteBuffer */
-		size = file.size();
-
-		rollbackjournal = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
-
-		// set filepointer to begin of the file
-		rollbackjournal.position(0);
-
-	}
 
 	/**
 	 * Starting with the current position of the RollbackJournal-ByteBuffer 
@@ -538,16 +501,10 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * read the next db-page.
 	 * 
 	 * @return
+	 * @throws IOException
 	 */
-	protected ByteBuffer readPage() {
-
-		byte [] page = new byte[ps];
-		
-		rollbackjournal.get(page);
-		
-		ByteBuffer content = ByteBuffer.wrap(page);
-		
-		return content;
+	protected ByteBuffer readPage() throws IOException {
+		return file.allocateAndReadBuffer(ps);
 	}
 
 	/**

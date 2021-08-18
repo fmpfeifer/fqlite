@@ -2,10 +2,8 @@ package fqlite.base;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +18,7 @@ import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
 import fqlite.util.Auxiliary;
+import fqlite.util.RandomAccessFileReader;
 
 /**
  * The class analyzes a WAL-file and writes the found records into a file.
@@ -52,10 +51,7 @@ public abstract class WALReaderBase extends Base {
 	TreeMap<Long,LinkedList<WALFrame>> checkpoints = new TreeMap<Long,LinkedList<WALFrame>>();
 
 	/* An channel for reading, writing, and manipulating a file. */
-	public FileChannel file;
-
-	/* This buffer holds WAL-file in RAM */
-	ByteBuffer wal;
+	public RandomAccessFileReader file;
 
 	/* total size of WAL-file in bytes */
 	long size;
@@ -136,8 +132,9 @@ public abstract class WALReaderBase extends Base {
 	 * Afterwards all write ahead frames are recovered.
 	 * 
 	 * @return
+	 * @throws IOException 
 	 */
-	public void parse() {
+	public void parse() throws IOException {
 		int framenumber = 0;
 		
 		Path p = Paths.get(path);
@@ -150,34 +147,21 @@ public abstract class WALReaderBase extends Base {
 
 		/* try to open the db-file in read-only mode */
 		try {
-			file = FileChannel.open(p, StandardOpenOption.READ);
+			file = new RandomAccessFileReader(p);
 		} catch (Exception e) {
             this.err("Cannot open WAL-file" + p.getFileName());
 			return;
 		}
 
-		/** Caution!!! we read the complete file into RAM **/
-		try {
-			readFileIntoBuffer();
-		} catch (IOException e) {
 
-			e.printStackTrace();
-		}
-
-		try {
-            if(file.size() <= 32)
-            {   
-                    info("WAL-File is empty. Skip analyzing.");
-                    return;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if(file.size() <= 32)
+        {   
+                info("WAL-File is empty. Skip analyzing.");
+                return;
         }
 		
 		/* read header of the WAL file - the first 32 bytes */
-		buffer = wal.slice();
-		buffer.position(0);
-		buffer.limit(32);
+		buffer = file.allocateAndReadBuffer(0, 32);
 
 		/* 
 		 * WAL Header Format:
@@ -315,10 +299,7 @@ public abstract class WALReaderBase extends Base {
 		do
 		{
 			/* 24 Byte - with six 4-Byte big endian values */
-			byte frameheader[] = new byte[24];
-			wal.position(framestart);
-			wal.get(frameheader);
-			ByteBuffer fheader = ByteBuffer.wrap(frameheader);
+			ByteBuffer fheader = file.allocateAndReadBuffer(framestart, 24);
 	
 			/* get the page number of this frame */
 			pagenumber_maindb = fheader.getInt();
@@ -484,7 +465,7 @@ public abstract class WALReaderBase extends Base {
 			// note: WITHOUT ROWID tables are saved here.
 			withoutROWID = true;
 		} else {
-			info("Data page " + pagenumber_wal + " Offset: " + (wal.position()));
+			info("Data page " + pagenumber_wal + " Offset: " + (file.position()));
 
 		}
 
@@ -774,34 +755,14 @@ public abstract class WALReaderBase extends Base {
 	}
 
 	/**
-	 * This method is used to read the database file into RAM.
-	 * 
-	 * @return a read-only ByteBuffer representing the WAL file content
-	 * @throws IOException
-	 */
-	private void readFileIntoBuffer() throws IOException {
-
-		/* read the complete file into a ByteBuffer */
-		size = file.size();
-
-		wal = file.map(FileChannel.MapMode.READ_ONLY, 0, size); 
-
-		// set filepointer to begin of the file
-		wal.position(0);
-
-	}
-
-	/**
 	 * Starting with the current position of the wal-ByteBuffer read the next
 	 * db-page.
 	 * 
 	 * @return
+	 * @throws IOException 
 	 */
-	protected ByteBuffer readPage() {
-
-		ByteBuffer page = wal.slice();
-		page.limit(ps);
-		return page;
+	protected ByteBuffer readPage() throws IOException {
+		return file.allocateAndReadBuffer(ps);
 	}
 
 	/**

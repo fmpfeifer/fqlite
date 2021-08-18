@@ -1,5 +1,7 @@
 package fqlite.base;
 
+import java.io.IOException;
+
 import fqlite.util.Logger;
 
 
@@ -9,7 +11,7 @@ public class JobCLI extends Job {
         super();
     }
     
-    protected void linesReady() {
+    protected void linesReady() throws IOException {
         String[] lines = getRows().stream().map(SqliteRow::toString).toArray(String[]::new);
         // String[] lines = ll.toArray(new String[0]);
         writeResultsToFile(null, lines);

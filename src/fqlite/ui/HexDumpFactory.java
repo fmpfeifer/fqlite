@@ -6,10 +6,10 @@ package fqlite.ui;
  * @version      1.1
  */
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import fqlite.base.JobGUI;
 import fqlite.util.Auxiliary;
+import fqlite.util.RandomAccessFileReader;
 
 public class HexDumpFactory
 {
@@ -27,19 +27,19 @@ public class HexDumpFactory
   */
 public static String dump(JobGUI job) throws IOException
   {
-    StringBuffer bf = new StringBuffer(job.db.capacity()*2);
+    StringBuffer bf = new StringBuffer((int) job.file.size()*2);
 	
     final String tabulator = "    ";
 
     String dump = "";
     String hexline = "";
     String txtline = "";
-    ByteBuffer in = job.db;
+    RandomAccessFileReader in = job.file;
     in.position(0);
      
     int of = 0;
     
-    long lines = in.limit() / 16;
+    long lines = in.size() / 16;
     int width = 0;
     
     if (lines < 65535)
@@ -90,7 +90,7 @@ public static String dump(JobGUI job) throws IOException
         txtline = "";
       
 	    
-    } while((in.limit() - in.position()) >= 16 );
+    } while((in.size() - in.position()) >= 16 );
     
     return dump;
   }

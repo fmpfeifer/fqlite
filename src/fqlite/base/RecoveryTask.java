@@ -43,7 +43,7 @@ public class RecoveryTask extends Base implements Runnable {
 	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList) {
 		
 		
-		if (job.size < offset)
+		if (job.file.size() < offset)
 			System.exit(-1);
 		
 		this.job = job;

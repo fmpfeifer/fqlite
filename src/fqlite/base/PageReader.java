@@ -643,8 +643,9 @@ public class PageReader extends Base {
      *
 	 * @param pagenumber
 	 * @return all bytes that belong to the payload 
+	 * @throws IOException
 	 */
-	private byte[] readOverflow(int pagenumber) {
+	private byte[] readOverflow(int pagenumber) throws IOException {
 		byte[] part = null;
 
 		/* read the next overflow page startRegion file */

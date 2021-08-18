@@ -1,8 +1,6 @@
 package fqlite.base;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -10,6 +8,7 @@ import javax.swing.tree.TreePath;
 
 import fqlite.ui.HexView;
 import fqlite.util.Auxiliary;
+import fqlite.util.RandomAccessFileReader;
 
 
 /**
@@ -26,7 +25,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	String soffset = "";
 	String filename = "";
 	int width = 0;
-    FileChannel file;
+    RandomAccessFileReader file;
     int type = 0;
 	
 	JobGUI job;
@@ -40,7 +39,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 * @param filename
 	 * @param type
 	 */
-	public HexViewCreator(JobGUI job, TreePath path, FileChannel file, String filename, int type) {
+	public HexViewCreator(JobGUI job, TreePath path, RandomAccessFileReader file, String filename, int type) {
 		super();
 		this.job = job;
 		this.path = path;
@@ -103,12 +102,11 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 	 */
 	public void create(JobGUI job) throws IOException {
 
-		
-		ByteBuffer in = readFileIntoBuffer(job);
+		RandomAccessFileReader in = file;
 		in.position(0);
 
 		int length = 0;
-		length = in.capacity();
+		length = (int) in.size();
 			
 		byte [] line = new byte[length];
 		
@@ -154,24 +152,7 @@ public class HexViewCreator extends SwingWorker<Boolean, Void>{
 			e.printStackTrace();
 		}
 	}
-	
-	/**
-	 * This method is used to read the database file into RAM.
-	 * @return a read-only ByteBuffer representing the db content
-	 * @throws IOException
-	 */
-	private ByteBuffer readFileIntoBuffer(JobGUI job) throws IOException {
-		/* read the complete file into a ByteBuffer */
-		long size = file.size();
 		
-		ByteBuffer db = file.map(FileChannel.MapMode.READ_ONLY, 0, size);
-		
-		// set filepointer to begin of the file
-		db.position(0);
-
-		return db;
-	}
-	
 	/**
 	 * Creates a new HexView-UI object. It is just a JDialog.
 	 * 

@@ -1,5 +1,6 @@
 package fqlite.base;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -367,7 +368,7 @@ public class JobGUI extends Job {
         }
     }
     
-    protected void linesReady() {
+    protected void linesReady() throws IOException {
         info("Number of records recovered: " + getRows().size());
 
         //String[] lines = ll.toArray(new String[0]);
