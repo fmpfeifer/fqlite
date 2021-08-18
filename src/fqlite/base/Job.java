@@ -1651,6 +1651,10 @@ public class Job extends Base {
     public synchronized List<SqliteRow> getRowsForTable(String tableName) {
         return tableRows.get(tableName);
     }
+
+    public synchronized Set<String> getTablesNames() {
+        return tableRows.keySet();
+    }
 }
 
 
