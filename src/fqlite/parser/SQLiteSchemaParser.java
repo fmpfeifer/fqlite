@@ -108,9 +108,9 @@ public class SQLiteSchemaParser {
 				tds.tblname = tablename;
 				tds.ROWID = rowid;  // this flag indicates weather there is a ROWID or not 
 				/* avoid double entries */
-				if (!job.headers.contains(tds))
+				if (!job.headers.containsKey(tablename))
 				{	
-					job.headers.add(tds);
+					job.headers.put(tablename, tds);
 					tds.root = root;
 				}
 			}
@@ -119,11 +119,11 @@ public class SQLiteSchemaParser {
 		{
 			IndexDescriptor ids = p.parseCREATEIndexStatement(sql);
 			
-			if (null == ids.idxname)
+			if (null == ids.getName())
 				return;
-			if (!job.indices.contains(ids))
+			if (!job.indices.containsKey(ids.getName()))
 			{	
-				job.indices.add(ids);         
+				job.indices.put(ids.getName(), ids);         
 				ids.root = root;
 			}	
 		}

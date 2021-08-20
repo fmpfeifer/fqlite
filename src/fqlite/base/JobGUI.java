@@ -153,13 +153,11 @@ public class JobGUI extends Job {
 	public LinkedHashMap<String,String[][]> getTableColumnTypes() 
 	{
 		
-		Iterator<TableDescriptor> it1 = headers.iterator();
 		LinkedHashMap<String,String[][]> ht = new LinkedHashMap<String,String[][]>();
 		
 		
-		while (it1.hasNext())
+		for (TableDescriptor td : headers.values())
 		{
-			TableDescriptor td = it1.next();
 		    String[] names = (String[])td.columnnames.toArray(new String[0]);
 		    String[] types = (String[])td.serialtypes.toArray(new String[0]);
 		    String[] sqltypes = (String[])td.sqltypes.toArray(new String[0]);
@@ -201,11 +199,7 @@ public class JobGUI extends Job {
 			ht.put(td.tblname,row);
 		}
 		
-		Iterator<IndexDescriptor> it2 = indices.iterator();
-		
-		while (it2.hasNext())
-		{
-			IndexDescriptor id = it2.next();
+		for (IndexDescriptor id : indices.values()) {
 			String[] names = (String[])id.columnnames.toArray(new String[0]);
 			String[] types = (String[])id.columntypes.toArray(new String[0]);
 		    
@@ -225,27 +219,19 @@ public class JobGUI extends Job {
 		String [][] prop = new String[headers.size() + indices.size()][6];//{{"","",""},{"","",""}};
 		int counter = 0;
 		
-		Iterator<TableDescriptor> it1 = headers.iterator();
-		
-		while (it1.hasNext())
+		for (TableDescriptor td : headers.values())
 		{
-			TableDescriptor td = it1.next();
-			
 		    if (!td.tblname.startsWith("__"))
 		    	prop[counter] = new String[]{"Table",td.tblname,String.valueOf(td.root),td.sql,String.valueOf(td.isVirtual()),String.valueOf(td.ROWID)};
 			counter++;			
 		}
-		
-		Iterator<IndexDescriptor> it2 = indices.iterator();
-		
-		while (it2.hasNext())
-		{
-			IndexDescriptor td = it2.next();
-	
+
+		for (IndexDescriptor td : indices.values()) {
+
 			prop[counter] = new String[]{"Index",td.idxname,String.valueOf(td.root),td.getSql(),"",""};
 			counter++;			
 		}
-		
+
 		return prop;
 	}
 

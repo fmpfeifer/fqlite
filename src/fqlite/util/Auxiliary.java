@@ -744,10 +744,7 @@ public class Auxiliary extends Base {
 
 	private TableDescriptor matchTable(SqliteElement[] header) {
 
-		Iterator<TableDescriptor> itds = job.headers.iterator();
-		while (itds.hasNext()) {
-			TableDescriptor table = itds.next();
-
+		for (TableDescriptor table : job.headers.values()) {
 			if (table.getColumntypes().size() == header.length) {
 				int idx = 0;
 				boolean eq = true;

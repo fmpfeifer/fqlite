@@ -17,18 +17,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -145,13 +140,10 @@ public class Job extends Base {
 	/* this field represent the database encoding */
 	public static Charset db_encoding = StandardCharsets.UTF_8;
 	
-	/* the list is used to export the recovered data records */
-	List<String> lines = new LinkedList<String>();
-	
 	/* this is a multi-threaded program -> all data are saved to the list first*/
 	private Queue<SqliteRow> ll = new ConcurrentLinkedQueue<>();
 
-	private SortedMap<String, List<SqliteRow>> tableRows = Collections.synchronizedSortedMap(new TreeMap<>());
+	private Map<String, List<SqliteRow>> tableRows = Collections.synchronizedMap(new LinkedHashMap<>());
 	
 	/* header fields */
 	
@@ -174,14 +166,14 @@ public class Job extends Base {
 	long avacc;
 	
 	/* Virtual Tables */
-	public Map<String,TableDescriptor> virtualTables = new HashMap<String,TableDescriptor>();
+	public Map<String, TableDescriptor> virtualTables = new LinkedHashMap<String,TableDescriptor>();
 	
 	int scanned_entries = 0;
 	
 	Hashtable<String, String> tblSig;
 	boolean is_default = false;
-	public Set<TableDescriptor> headers = new TreeSet<TableDescriptor>();
-	public List<IndexDescriptor> indices = new LinkedList<IndexDescriptor>();
+	public Map<String, TableDescriptor> headers = new LinkedHashMap<String, TableDescriptor>();
+	public Map<String, IndexDescriptor> indices = new LinkedHashMap<String, IndexDescriptor>();
 	public AtomicInteger runningTasks = new AtomicInteger();
 	int tablematch = 0;
 	int indexmatch = 0; 
@@ -189,9 +181,6 @@ public class Job extends Base {
 	AtomicInteger numberofcells = new AtomicInteger();
 	
 	Set<Integer> allreadyvisit;
-	
-	/* all unfinished tasks are hold in this list*/
-	List<RecoveryTask> tasklist = new LinkedList<RecoveryTask>();
 	
 	/* this array holds a description of the associated component for each data page, if known */
 	public AbstractDescriptor[] pages;
@@ -796,21 +785,16 @@ public class Job extends Base {
 			 * indices descriptors
 			 */
 
-			Iterator<IndexDescriptor> itidx = indices.iterator();
-			while (itidx.hasNext()) {
-				IndexDescriptor id = itidx.next();
+			
+			for (IndexDescriptor id : indices.values()) {
 				String tbn = id.tablename;
-
-				Iterator<TableDescriptor> hdi = headers.iterator();
 				
-				while(hdi.hasNext()) {
+				if (null != tbn) {
+				    TableDescriptor td = headers.get(tbn);
 
-					TableDescriptor desc = hdi.next();
-					if (tbn != null && tbn.equals(desc.tblname)) {
+				    if (null != td) {
 
 						/* component for index could be found */
-						TableDescriptor td = desc;
-
 						List<String> idname = id.columnnames;
 						List<String> tdnames = td.columnnames;
 
@@ -850,33 +834,19 @@ public class Job extends Base {
 
 						exploreBTree(id.getRootOffset(), id);
 
-						break;
+						//break;
 					}
 
 				}
 			}
 			
-			
-			
-			
-
-			/* prepare pre-compiled pattern objects */
-			Iterator<TableDescriptor> iter = headers.iterator();
-
-			HashSet<String> doubles = new HashSet<String>();
- 			
 			/*
 			 * Now, since we have all component definitions, we can update the UI and start
 			 * exploring the b-tree for each component
 			 */
-			while (iter.hasNext()) {
+			for (TableDescriptor td : headers.values()) {
 
-				TableDescriptor td = iter.next();
-
-				if (!doubles.add(td.tblname))
-				  continue;
-				
-				td.printTableDefinition();
+			    td.printTableDefinition();
 
 				int r = td.getRootOffset();
 				info(" root offset for component " + r);
@@ -905,11 +875,7 @@ public class Job extends Base {
 
 			/*******************************************************************/
 
-			Iterator<IndexDescriptor> it = indices.iterator();
-
-			while (it.hasNext()) {
-
-				IndexDescriptor id = it.next();
+			for (IndexDescriptor id : indices.values()) {
 				int r = id.getRootOffset();
 				info(" root offset for index " + r);
 
@@ -934,7 +900,7 @@ public class Job extends Base {
 				names.add("col" + (i + 1));
 			}
 			TableDescriptor tdefault = new TableDescriptor("__UNASSIGNED", "",col, col, names, null, null, null, false);
-			headers.add(tdefault);
+			headers.put(tdefault.getName(), tdefault);
 			
 			unassignedTableCreated(tdefault);
 			/*******************************************************************/
@@ -1047,7 +1013,6 @@ public class Job extends Base {
 						RecoveryTask task = new RecoveryTask(new Auxiliary(this), this, offset, n, ps, true);
 						/* add new task to executor queue */
 						runningTasks.incrementAndGet();
-						tasklist.add(task);
 						executor.execute(task);
 						// task.run();
 					}
@@ -1563,27 +1528,15 @@ public class Job extends Base {
 	public String[] getHeaderString(String tablename)
 	{
 		/* check tables first */
-		Iterator<TableDescriptor> iter = this.headers.iterator();
-		while (iter.hasNext())
-		{
-			TableDescriptor td = iter.next();
-			if (td.tblname.equals(tablename))
-			{
-				return td.columnnames.toArray(new String[0]);
-			}	
-			
-		}
-		
+	    TableDescriptor td = headers.get(tablename);
+	    if (null != td) {
+	        return td.columnnames.toArray(new String[0]);
+	    }
+
 		/* check indicies next */
-		Iterator<IndexDescriptor> itI = this.indices.iterator();
-		while (itI.hasNext())
-		{
-			IndexDescriptor id = itI.next();
-			if (id.idxname.equals(tablename))
-			{
-				return id.columnnames.toArray(new String[0]);
-			}	
-			
+	    IndexDescriptor id = indices.get(tablename);
+	    if (null != id) {
+	        return id.columnnames.toArray(new String[0]);			
 		}
 
 		/* no luck */
