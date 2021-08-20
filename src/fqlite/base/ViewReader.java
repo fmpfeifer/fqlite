@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -64,10 +63,8 @@ public class ViewReader {
 	        }
 	        rs.close();
 	        
-	        Iterator<String> view_names = names.iterator();
-	        while (view_names.hasNext())
+	        for (String name : names)
 	        {
-	        	String name = view_names.next();
 	        	System.out.println(name);
 	        	String sql2 = "SELECT * FROM " + name + ";";
 	        	ResultSet rs2 = statement.executeQuery(sql2);

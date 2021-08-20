@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1314,14 +1313,7 @@ public class Auxiliary extends Base {
 			res.add(value | b);
 			counter++;
 		}
-		int[] result = new int[res.size()];
-		int n = 0;
-		Iterator<Integer> it = res.iterator();
-		while (it.hasNext()) {
-			result[n] = it.next();
-			n++;
-		}
-		return result;
+		return res.stream().mapToInt(i->i).toArray();		
 	}
 	
 	public static String getSerial(SqliteElement[] columns) {

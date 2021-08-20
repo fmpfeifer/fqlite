@@ -710,10 +710,8 @@ public class GUI extends JFrame {
 		/* add icon to PRIMARYKEY columns */
 		if (null != PK)
 		{
-			Iterator<String> it = PK.iterator();
-			while(it.hasNext())
+			for (String pkcol : PK)
 			{
-				String pkcol = it.next();
 				for (int c = 0; c < model.getColumnCount(); c++)
 				{
 					if (pkcol.equals(model.getColumnName(c)))

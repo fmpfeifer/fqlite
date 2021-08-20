@@ -1,9 +1,7 @@
 package fqlite.base;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -71,15 +69,11 @@ public class WALReaderGUI extends WALReaderBase {
 			
 			
 			/* remove empty tables and index-tables from the treeview */
-			Set<Entry<String, TreePath>> entries = job.guiwaltab.entrySet();
-			Iterator<Entry<String, TreePath>> iter = entries.iterator();
 			DefaultTreeModel model = (DefaultTreeModel) (GUI.tree.getModel());
 			  
-			while(iter.hasNext())
+			//while(iter.hasNext())
+			for (Entry<String, TreePath> entry : job.guiroltab.entrySet())
 			{
-				Entry<String,TreePath> entry = iter.next();
-				
-				
 				DefaultMutableTreeNode node = (DefaultMutableTreeNode)entry.getValue().getLastPathComponent();
 				NodeObject no = (NodeObject)node.getUserObject();	
 				

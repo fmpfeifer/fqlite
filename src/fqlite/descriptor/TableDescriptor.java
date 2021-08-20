@@ -31,7 +31,6 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	
 	int size = 0;
 	int numberofmultibytecolumns = 0;
-	String fingerprint = ""; // the regex expression
 	String signature = ""; // the type signature, i.e., INTSTRINGSTINGINT
 	public String tblname = "";
 	public int root = -1;
@@ -226,12 +225,9 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 		
 		
 		/* create a table fingerprint for later search */
-		Iterator<String> iter = getColumntypes().iterator();
-		while (iter.hasNext()) {
+		for (String columnType : getColumntypes()) {
 			size++;
-			regex += getColumn(iter.next(), false);
-			fingerprint += fingerprint;
-		
+			regex += getColumn(columnType, false);		
 		}
 	}
 	
@@ -305,24 +301,6 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	 */
 	public int getRootOffset() {
 		return this.root;
-	}
-
-	/**
-	 * Return the Fingerprint, i.e., a String of colummn types.
-	 * @return
-	 */
-	public String getFingerprint() {
-		return fingerprint;
-	}
-
-	/**
-	 * Compares a given signature with the signature of the current component.
-     *
-	 * @param signature
-	 * @return true, if the signature matches
-	 */
-	public boolean matches(String signature) {
-		return fingerprint.equals(signature);
 	}
 
 	/**

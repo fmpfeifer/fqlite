@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -118,20 +117,11 @@ public class JobGUI extends Job {
 		
 		Set<Long> data = wal.checkpoints.descendingKeySet();
 		
-		Iterator<Long> it = data.iterator();
-		
-		while (it.hasNext())
-		{
-			Long salt1 = it.next();
+		for (Long salt1 : data) {			
+		    LinkedList<WALFrame> list = wal.checkpoints.get(salt1);
 			
-			LinkedList<WALFrame> list = wal.checkpoints.get(salt1);
-			
-			Iterator<WALFrame> frames = list.iterator();
-			
-			while (frames.hasNext())
+			for (WALFrame current : list)
 			{
-				WALFrame current = frames.next();
-				
 			    String[] line = new String[5];
 			    line[0] = String.valueOf(current.salt1);
 			    line[1] = String.valueOf(current.salt2);
