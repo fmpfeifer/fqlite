@@ -14,6 +14,7 @@ public abstract class Base {
 	public static final int INFO = 2;
 	public static final int WARNING = 3;
 	public static final int ERROR = 4;
+	public static final int NONE = 5;
 	public static int LOGLEVEL = ALL;
 
 
@@ -38,13 +39,13 @@ public abstract class Base {
 
 	public void err(String message) {
 
-		/* always print error messages */
-		System.err.println("ERROR: " + message);
+		if (LOGLEVEL <= ERROR) 
+		    System.err.println("[ERROR] " + message);
 	}
 
 	/*
      * The idea behind these method is to only call toString()
-     * in messageObject if it is to be logger, otherwise the
+     * in messageObject if it is to be logged, otherwise the
      * potentially expensive String generation is bypassed
      */
     public void debug(Object messageObject) {
