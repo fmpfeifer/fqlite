@@ -1,5 +1,5 @@
 package fqlite.parser;
-// Generated from SQLite.g4 by ANTLR 4.8
+// Generated from SQLite.g4 by ANTLR 4.9.2
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -688,6 +688,18 @@ public class SQLiteBaseListener implements SQLiteListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCte_table_name(SQLiteParser.Cte_table_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCte_table_name(SQLiteParser.Cte_table_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSigned_number(SQLiteParser.Signed_numberContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -803,30 +815,6 @@ public class SQLiteBaseListener implements SQLiteListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitDatabase_name(SQLiteParser.Database_nameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterSchema_name(SQLiteParser.Schema_nameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSchema_name(SQLiteParser.Schema_nameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterTable_function_name(SQLiteParser.Table_function_nameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTable_function_name(SQLiteParser.Table_function_nameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
