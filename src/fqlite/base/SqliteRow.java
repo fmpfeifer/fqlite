@@ -2,6 +2,8 @@ package fqlite.base;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SqliteRow {
     private List<SqliteElementData> rowData = new ArrayList<>();
@@ -9,7 +11,19 @@ public class SqliteRow {
     private String tableName = "";
     private String recordType = "";
     private String lineSuffix = "";
-    
+    private Map<String, Integer> colIdx = null;
+
+    void setColumnNamesMap(Map<String, Integer> colIdx) {
+        this.colIdx = colIdx;
+    }
+
+    public Set<String> getColumnNames() {
+        if (colIdx != null) {
+            return colIdx.keySet();
+        }
+        return null;
+    }
+
     public void append(SqliteElementData elementData) {
         rowData.add(elementData);
     }
@@ -63,5 +77,37 @@ public class SqliteRow {
         builder.append("\n");
         
         return builder.toString();
+    }
+
+    public long getIntValue(String col) {
+        int idx = colIdx.get(col);
+        if (idx >= rowData.size()) {
+            return -1;
+        }
+        return rowData.get(idx).getIntValue();
+    }
+
+    public String getTextValue(String col) {
+        int idx = colIdx.get(col);
+        if (idx >= rowData.size()) {
+            return null;
+        }
+        return rowData.get(idx).getTextValue();
+    }
+
+    public double getFloatValue(String col) {
+        int idx = colIdx.get(col);
+        if (idx >= rowData.size()) {
+            return Double.NaN;
+        }
+        return rowData.get(idx).getFloatValue();
+    }
+
+    public byte[] getBlobValue(String col) {
+        int idx = colIdx.get(col);
+        if (idx >= rowData.size()) {
+            return null;
+        }
+        return rowData.get(idx).getBlobValue();
     }
 }

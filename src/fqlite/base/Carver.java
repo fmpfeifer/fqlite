@@ -111,9 +111,13 @@ public class Carver extends Base {
 			debug("Match: " + m + " on pos:" + ((pagenumber - 1) * job.ps + from));
 			match = true;
 			
-	
+			boolean missing = false;
 			if (headertype == CarverTypes.NORMAL) {
-				firstcol.insert(0,m.substring(2, 4));
+			    if (firstcol.length() >= 4) {
+			        firstcol.insert(0,m.substring(2, 4));
+			    } else {
+			        missing = true;
+			    }
 				//System.out.println(" Adding knownfirstcolumntypes " + m.substring(2, 4));
 			}
 
@@ -124,7 +128,7 @@ public class Carver extends Base {
 				m = addHeaderByte(m);
 			}
 
-			if (headertype == CarverTypes.FIRSTCOLUMNMISSING) {
+			if (headertype == CarverTypes.FIRSTCOLUMNMISSING || missing) {
 				if (null != firstcol && firstcol.length()>2 && !firstcol.subSequence(0,2).equals("00")) {
 					m = firstcol.substring(0,2) + m; 
 		

@@ -17,11 +17,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1061,6 +1063,22 @@ public class Job extends Base {
 		}
 
 		closeResources();
+
+		for (Entry<String, TableDescriptor> tableEntry : headers.entrySet()) {
+		    List<SqliteRow> rows = tableRows.get(tableEntry.getKey());
+		    if (null != rows) {
+		        Map<String, Integer> colIdx = new HashMap<>();
+		        int id = 0;
+		        for (String col : tableEntry.getValue().columnnames) {
+		            colIdx.put(col, id++);
+		        }
+
+		        for (SqliteRow row : rows) {
+		            row.setColumnNamesMap(colIdx);
+		        }
+		    }
+		}
+
 
 		return 0;
 	}
