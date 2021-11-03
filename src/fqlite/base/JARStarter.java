@@ -25,29 +25,20 @@ public class JARStarter {
    private static Map<String, Class<?>> PROGRAM_MODES = new HashMap<String, Class<?>>();
 	   
 	    static{
-	        PROGRAM_MODES.put("gui", GUI.class);
 	        PROGRAM_MODES.put("nogui", MAIN.class);
 	        PROGRAM_MODES.put("cli", MAIN.class);
 	    }
 	
 	public static void main(String[] args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		
-		    if (args.length == 0)
-		    {
-		    	/* no arguments -> start in gui mode (default)*/
-                GUI.main(args);
-		    }
-		    else
-		    {	
-			    Class<?> entryPoint = PROGRAM_MODES.get(args[0]);
-		        if(entryPoint==null){
-		        	 MAIN.printOptions();
-		        	 return;
-		        }
-		       
-		        final String[] argsCopy = args.length > 1  ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
-		        entryPoint.getMethod("main", String[].class).invoke(null, (Object) argsCopy);
-		    }
+			Class<?> entryPoint = PROGRAM_MODES.get(args[0]);
+			if(entryPoint==null){
+					MAIN.printOptions();
+					return;
+			}
+			
+			final String[] argsCopy = args.length > 1  ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+			entryPoint.getMethod("main", String[].class).invoke(null, (Object) argsCopy);
 	}
 
 }

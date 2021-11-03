@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import fqlite.base.GUI;
-import fqlite.base.JobGUI;
+import fqlite.base.Base;
+import fqlite.base.JobCLI;
 
 /*
 ---------------
@@ -74,7 +74,7 @@ public class UnitTest {
 
 		try {
 
-			URL url = GUI.class.getResource("/testcase.txt");
+			URL url = Base.class.getResource("/testcase.txt");
 			BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
 
 			String line = in.readLine();
@@ -118,7 +118,7 @@ public class UnitTest {
 		while (it.hasNext()) {
 
 			TestCase next = it.next();
-			JobGUI job = new JobGUI();
+			JobCLI job = new JobCLI();
 			System.out.println("Start analysing database " + next.file);
 			int checksum = job.run(next.file);
 
