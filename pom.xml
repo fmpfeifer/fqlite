@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.fmpfeifer</groupId>
   <artifactId>libfqlite</artifactId>
-  <version>1.56.0-beta-SNAPSHOT</version>
+  <version>1.56.01-beta-SNAPSHOT</version>
   <name>libfqlite</name>
   <description>FQLite is a tool to find and restore deleted records in sqlite databases.
     It therefore examines the database for entries marked as deleted.
