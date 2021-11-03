@@ -2,13 +2,18 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.fmpfeifer</groupId>
   <artifactId>libfqlite</artifactId>
-  <version>1.56.01-beta-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <version>1.56.01-beta</version>
   <name>libfqlite</name>
+
   <description>FQLite is a tool to find and restore deleted records in sqlite databases.
     It therefore examines the database for entries marked as deleted.
     Those entries can be recovered. It is written with the Java programming language.
-    The program is able to search a SQLite database file for regular as well as deleted records.</description>
-  <packaging>jar</packaging>
+    The program is able to search a SQLite database file for regular as well as deleted records.
+  </description>
+  <url>https://github.com/fmpfeifer/libfqlite</url>
+
   <licenses>
     <license>
       <name>Mozilla Public License, Version 2.0</name>
@@ -19,14 +24,37 @@
       <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
     </license>
   </licenses>
+
   <scm>
     <connection>scm:git:git://github.com/fmpfeifer/libfqlite.git</connection>
     <developerConnection>scm:git:ssh://github.com:fmpfeifer/libfqlite.git</developerConnection>
     <url>https://github.com/fmpfeifer/libfqlite/tree/master</url>
   </scm>
+
+  <developers>
+    <developer>
+      <id>fmpfeifer</id>
+      <name>Fábio Melo Pfeifer</name>
+      <email>fmpfeifer@gmail.com</email>
+      <organization>DPF</organization>
+      <organizationUrl>https://www.pf.gov.br/</organizationUrl>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
+      <timezone>-3</timezone>
+
+      <properties>
+        <picUrl>https://avatars.githubusercontent.com/u/3900238</picUrl>
+      </properties>
+    </developer>
+  </developers>
+
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.antlr</groupId>
@@ -39,14 +67,17 @@
       <version>1.15</version>
     </dependency>
   </dependencies>
+
   <distributionManagement>
     <snapshotRepository>
       <id>ossrh</id>
       <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
+
   <build>
     <sourceDirectory>src</sourceDirectory>
+
     <resources>
       <resource>
         <directory>src</directory>
@@ -61,6 +92,7 @@
         </excludes>
       </resource>
     </resources>
+
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -89,7 +121,7 @@
         <configuration>
           <serverId>ossrh</serverId>
           <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>false</autoReleaseAfterClose>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
       </plugin>
       <plugin>
