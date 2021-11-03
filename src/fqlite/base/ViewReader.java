@@ -100,7 +100,6 @@ public class ViewReader {
 	     
 	        
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -113,7 +112,6 @@ public class ViewReader {
 			ViewReader v = new ViewReader();
 			v.connect();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
