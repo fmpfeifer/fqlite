@@ -24,6 +24,15 @@ public class SqliteRow {
         return null;
     }
 
+    public int getColumnIndex(String colName) {
+        if (colIdx != null) {
+            if (colIdx.containsKey(colName)) {
+                return colIdx.get(colName);
+            }
+        }
+        return -1;
+    }
+
     public void append(SqliteElementData elementData) {
         rowData.add(elementData);
     }
