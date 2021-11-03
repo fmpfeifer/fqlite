@@ -36,9 +36,12 @@ public class RecoveryTask extends Base implements Runnable {
 	/**
 	 * Constructor method.
 	 * 
-	 * @param offset
-	 * @param pagenumber
-	 * @param pagesize
+	 * @param ct auxiliary object.
+	 * @param job the job object.
+	 * @param offset the offset
+	 * @param pagenumber the page number
+	 * @param pagesize the page size
+	 * @param freeList if it is a free list
 	 */
 	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList) {
 		
@@ -58,7 +61,7 @@ public class RecoveryTask extends Base implements Runnable {
 	/**
 	 * This method called to recover regular data records startRegion a database page.
 	 * 
-	 * @return
+	 * @return 0 if successful, -1 otherwise.
 	 */
 	public int recover() {
 
@@ -419,7 +422,7 @@ public class RecoveryTask extends Base implements Runnable {
 	/**
 	 * Check the BitSet for gaps, i.e. regions we still have to carve.
 	 * 
-	 * @return
+	 * @return the gaps found
 	 */
 	public LinkedList<Gap> findGaps() {
 		LinkedList <Gap> gaps = new LinkedList<Gap>();
@@ -474,6 +477,7 @@ public class RecoveryTask extends Base implements Runnable {
 	 * This method is called to carve a data page for records.
 	 * 
 	 * @param content page content as hex-string
+	 * @param crv the carver
 	 */
 	public void carve(String content, Carver crv) {
 

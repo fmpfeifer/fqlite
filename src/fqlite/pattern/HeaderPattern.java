@@ -53,6 +53,8 @@ public class HeaderPattern {
 
 	/**
 	 *  add a "mix..max" header constrain to the constrain list.
+	 * @param min minimum value
+	 * @param max maximum value
 	 */
 	public void addHeaderConstraint(int min, int max) 
 	{
@@ -72,7 +74,7 @@ public class HeaderPattern {
 	
 	/**
 	 *  add a string column constrain to the constrain list.
-	 *  A value >= 13;  
+	 *  A value &gt;= 13;  
 	 **/
 	public void addStringConstraint() 
 	{
@@ -82,7 +84,8 @@ public class HeaderPattern {
 	
 	/**
 	 *  add a string column constrain to the constrain list
-	 *  with a max-value (i.e. varchar(32) -> max-value = 32*2+13)
+	 *  with a max-value (i.e. varchar(32) -&gt; max-value = 32*2+13)
+	 * @param maxlength the max-length
 	 **/
 	public void addStringConstraint(int maxlength) 
 	{

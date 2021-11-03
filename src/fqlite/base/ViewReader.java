@@ -15,7 +15,7 @@ public class ViewReader {
 	
 	/**
      * Connect to a sample database
-	 * @throws ClassNotFoundException 
+	 * @throws ClassNotFoundException if no JDBC driver is found 
      */
     public void connect() throws ClassNotFoundException {
        

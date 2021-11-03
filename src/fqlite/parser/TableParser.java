@@ -72,7 +72,7 @@ public class TableParser {
      *		'lastUpdate' TEXT
 	 *	);
 	 * 
-	 * @param stmt
+	 * @param stmt the SQL-statement
 	 * @return a TableDescriptor Object with all the information about the component. 
 	 */
 	public TableDescriptor parseCREATETABLEStatement(String stmt)
@@ -90,7 +90,7 @@ public class TableParser {
 	 * The result will be a IndexDescriptor object, that contains component name, column names 
 	 * an types. This information is necessary for matching the data records.
 	 
-	 * @param stmt
+	 * @param stmt the SQL-statement
 	 * @return a IndexDesriptor Object with all information about the component.
 	 */
 	public IndexDescriptor parseCREATEIndexStatement(String stmt)
@@ -106,7 +106,7 @@ public class TableParser {
 	
 	/**
 	 * Use this main() method only for testing purposes. 
-	 * @param args
+	 * @param args the args
 	 */
 	public static void main(String [] args)
 	{

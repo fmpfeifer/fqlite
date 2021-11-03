@@ -131,8 +131,7 @@ public abstract class WALReaderBase extends Base {
 	 * This method is the main processing loop. First the header is analyzed.
 	 * Afterwards all write ahead frames are recovered.
 	 * 
-	 * @return
-	 * @throws IOException 
+	 * @throws IOException if an I/O error occurs
 	 */
 	public void parse() throws IOException {
 		int framenumber = 0;
@@ -399,6 +398,7 @@ public abstract class WALReaderBase extends Base {
 	/**
 	 * Analyze the actual database page and try to recover regular and deleted content.
 	 * 
+	 * @param frame the WALFrame object
 	 * @return int success
 	 */
 	public int analyzePage(WALFrame frame) {
@@ -758,8 +758,8 @@ public abstract class WALReaderBase extends Base {
 	 * Starting with the current position of the wal-ByteBuffer read the next
 	 * db-page.
 	 * 
-	 * @return
-	 * @throws IOException 
+	 * @return the buffer with the page
+	 * @throws IOException if an error occurs
 	 */
 	protected ByteBuffer readPage() throws IOException {
 		return file.allocateAndReadBuffer(ps);
@@ -768,7 +768,9 @@ public abstract class WALReaderBase extends Base {
 	/**
 	 * This method is called to carve a data page for records.
 	 * 
+	 * @param buffer the buffer
 	 * @param content page content as hex-string
+	 * @param crv the Carver object
 	 */
 	public void carve(ByteBuffer buffer, String content, Carver crv) {
 
@@ -916,29 +918,9 @@ public abstract class WALReaderBase extends Base {
 	public abstract void output();
 	
 	/**
-	 * Recursive function to traverse all nodes of a JTree
-	 * 
-	 * @param model
-	 * @param o
-	 */
-	protected void walk(TreeModel model, Object o) {
-		int cc;
-		cc = model.getChildCount(o);
-		for (int i = 0; i < cc; i++) {
-			Object child = model.getChild(o, i);
-			if (model.isLeaf(child))
-				info(child.toString());
-			else {
-				info(child.toString() + "--");
-				walk(model, child);
-			}
-		}
-	}
-
-	/**
 	 * Check the BitSet for gaps, i.e. regions we still have to carve.
 	 * 
-	 * @return
+	 * @return the gaps found
 	 */
 	public LinkedList<Gap> findGaps() {
 		LinkedList<Gap> gaps = new LinkedList<Gap>();
@@ -989,6 +971,7 @@ public abstract class WALReaderBase extends Base {
 	 * This method is called to carve a data page for records.
 	 * 
 	 * @param content page content as hex-string
+	 * @param crv the Carver object
 	 */
 	public void carve(String content, Carver crv) {
 

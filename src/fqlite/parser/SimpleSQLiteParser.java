@@ -89,7 +89,7 @@ public class SimpleSQLiteParser extends Base {
      *		'lastUpdate' TEXT
 	 *	);
 	 * 
-	 * @param stmt
+	 * @param stmt The statement to be parsed.
 	 * @return a TableDescriptor Object with all the information about the component. 
 	 */
 	public TableDescriptor parseTable(String stmt)
@@ -145,7 +145,7 @@ public class SimpleSQLiteParser extends Base {
 	 * Parse a CREATE VIRTUAL TABLE statement and return a TableDescriptor object.
 	 * 
 	 * @param stmt String with the CREATE VIRTUAL TABLE statement to parse.
-	 * @return
+	 * @return the TableDescriptor object
 	 */
 	private TableDescriptor parseCreateVirtualTable(String stmt)
 	{
@@ -290,7 +290,7 @@ public class SimpleSQLiteParser extends Base {
 	 * Parse a CREATE TABLE statement and return a TableDescriptor object.
 	 * 
 	 * @param stmt String with the CREATE TABLE statement to parse.
-	 * @return
+	 * @return the TableDescriptor object
 	 */
 	private TableDescriptor parseCreateTable(String stmt)
 	{

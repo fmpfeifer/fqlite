@@ -115,8 +115,9 @@ public class IndexDescriptor extends AbstractDescriptor{
 	/**
 	 * Returns a regex for only some serialtypes of the indices.
 	 * 
-	 * @param startcolumn
-	 * @param endcolumn
+	 * @param startcolumn index of the first column to be considered
+	 * @param endcolumn index of the last column to be considered
+	 * @param multicol if true, the regex will be for a multi-column index
 	 * @return regex
 	 */
 	public String getPattern(int startcolumn, int endcolumn, boolean multicol) {
@@ -138,7 +139,7 @@ public class IndexDescriptor extends AbstractDescriptor{
 	
 	/**
 	 * Returns the number of the root data page. 
-	 * @return
+	 * @return the number of the root data page
 	 */
 	public int getRootOffset() {
 		return this.root;
@@ -151,7 +152,7 @@ public class IndexDescriptor extends AbstractDescriptor{
 	 * the total number of bytes in the header. 
 	 * The varint value is the size of the header in bytes including 
 	 * the size varint itself.
-	 * @return
+	 * @return the indices header length
 	 */
 	public int getLength() {
 		return 1 + size;
@@ -159,7 +160,7 @@ public class IndexDescriptor extends AbstractDescriptor{
 
 	/**
 	 * Return the number of columns (startRegion the component header). 
-	 * @return
+	 * @return the number of columns
 	 */
 	public int numberofColumns() {
 		return columntypes.size();
@@ -178,9 +179,9 @@ public class IndexDescriptor extends AbstractDescriptor{
 	 * strings and BLOBs might extend to two or three byte varints,
 	 * but that is the exception rather than the rule.
 	 * 
-	 * @param serialtype
-	 * @param multicol
-	 * @return
+	 * @param serialtype the serial type
+	 * @param multicol true if multi column
+	 * @return the regular expression for the pattern matching
 	 */
 	private String getColumn(String serialtype, boolean multicol) {
 

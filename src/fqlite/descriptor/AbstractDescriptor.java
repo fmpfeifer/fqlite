@@ -18,7 +18,7 @@ public abstract class AbstractDescriptor extends Base {
 	
 	/**
 	 * Return the name of the database object.
-	 * @return
+	 * @return the name of the database object.
 	 */
 	abstract public String getName();
 	

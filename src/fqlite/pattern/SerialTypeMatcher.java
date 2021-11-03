@@ -38,7 +38,7 @@ public class SerialTypeMatcher {
 	 * Change the matching behavior. You can choose between:
 	 * NORMAL,NOHEADER,NO1STCOL.
 	 * 
-	 * @param newMode
+	 * @param newMode the matching mode
 	 */
 	public void setMatchingMode(MatchingMode newMode) {
 		mode = newMode;
@@ -51,7 +51,7 @@ public class SerialTypeMatcher {
 	/**
 	 * Set a list of matching constrains.
 	 * 
-	 * @param pattern
+	 * @param pattern the pattern
 	 */
 	public void setPattern(HeaderPattern pattern) {
 		this.pattern = pattern;
@@ -60,8 +60,8 @@ public class SerialTypeMatcher {
 	/**
 	 * Sets the limits of this matcher's region.
 	 * 
-	 * @param from
-	 * @param to
+	 * @param from the start of the region
+	 * @param to the end of the region
 	 */
 	public void region(int from, int to) {
 		this.startRegion = from;
@@ -161,7 +161,7 @@ public class SerialTypeMatcher {
 	 * with input sequence s, the expressions m.group() and s.substring(m.start(),
 	 * m.end()) are equivalent.
 	 * 
-	 * @return
+	 * @return The (possibly empty) subsequence matched by the previous match
 	 */
 	public ByteBuffer group() {
 		byte[] match = new byte[(end) - start];
@@ -174,7 +174,9 @@ public class SerialTypeMatcher {
 	 * Returns the input subsequence matched by the previous match. The return value
 	 * contains a hex-representation of the match byte values.
 	 * 
-	 * @return
+	 * @param start the start index of the match
+	 * @param end the end index of the match
+	 * @return the matched substring
 	 */
 	public String substring(int start, int end) {
 		if (start > end)
@@ -189,7 +191,7 @@ public class SerialTypeMatcher {
 	 * Returns the input subsequence matched by the previous match. The return value
 	 * contains a hex-representation of the match byte values.
 	 * 
-	 * @return
+	 * @return hex representation of matched group
 	 */
 	public String group2Hex() {
 		return substring(start, end);

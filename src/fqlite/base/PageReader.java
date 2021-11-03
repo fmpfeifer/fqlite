@@ -81,7 +81,7 @@ public class PageReader extends Base {
 	 * Constructor. To return values to the calling job environment, an object reference of
 	 * job object is required.
 	 * 
-	 * @param job
+	 * @param job the job object
 	 */
 	public PageReader(Job job) {
 		this.job = job;
@@ -91,11 +91,11 @@ public class PageReader extends Base {
 	 * An important step in data recovery is the analysis of the database schema.
 	 * This method allows to read in the schema description into a ByteBuffer.
 	 * 
-	 * @param job
-	 * @param start
-	 * @param buffer
-	 * @param header
-	 * @throws IOException
+	 * @param job the job object
+	 * @param start the start position
+	 * @param buffer the buffer to write the schema into
+	 * @param header the header
+	 * @throws IOException if an I/O error occurs
 	 */
 	public void readMasterTableRecord(Job job, int start, ByteBuffer buffer, String header) throws IOException {
 		
@@ -215,12 +215,13 @@ public class PageReader extends Base {
 	/**
 	 * This method is used to extract a previously deleted record startRegion a page. 
 	 * 
+	 * @param job the job object
 	 * @param start  the exact position (offset relative to the page start).
 	 * @param buffer a ByteBuffer with the data page to analyze.
 	 * @param header the record header bytes including header length and serial types.
 	 * @param bs	a data structure that is used to record which areas have already been searched 
 	 * @param pagenumber  the number of the page we going to analyze
-	 * @return
+	 * @return the CarvingResult
 	 * @throws IOException  if something went wrong during read-up. 
 	 */
 	public CarvingResult readDeletedRecord(Job job, int start, ByteBuffer buffer, String header, BitSet bs,
@@ -692,6 +693,8 @@ public class PageReader extends Base {
 
 	/**
 	 * Convert a base16 string into a byte array.
+	 * @param s the string to be decoded
+	 * @return the decoded byte array
 	 */
 	public static byte[] decode(String s) {
 		int len = s.length();
@@ -716,8 +719,8 @@ public class PageReader extends Base {
 
 	/**
 	 * 
-	 * @param header
-	 * @return
+	 * @param header header string to be decoded
+	 * @return the decoded header (Columns)
 	 */
 	public SqliteElement[] toColumns(String header) {
 		/* hex-String representation to byte array */
@@ -732,7 +735,7 @@ public class PageReader extends Base {
 	 * @param headerlength total length of the header in bytes
 	 * @param buffer the headerbytes
 	 * @return the column field
-	 * @throws IOException
+	 * @throws IOException if an error ocurred
 	 */
 	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer) throws IOException {
 
@@ -834,7 +837,7 @@ public class PageReader extends Base {
 	 * 
 	 * @param buffer with varint value
 	 * @return a normal integer value extracted startRegion the buffer
-	 * @throws IOException
+	 * @throws IOException if an error ocurred
 	 */
 	public int readUnsignedVarInt(ByteBuffer buffer) throws IOException {
 //		int value = 0;
@@ -858,8 +861,8 @@ public class PageReader extends Base {
 	/**
 	 * Auxiliary method for reading one of a two-byte number in 
 	 * a data field of type short.
-	 * @param b
-	 * @return
+	 * @param b the two byte buffer to be converted
+	 * @return the decoded integer value
 	 */
 	public static int TwoByteBuffertoInt(ByteBuffer b) {
 		short v = b.getShort();

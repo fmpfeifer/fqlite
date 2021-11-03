@@ -68,7 +68,9 @@ public class SQLiteSchemaParser {
 	/**
 	 * 
 	 * @param job reference to calling Job-instance
-	 * @param page    String with schema definition
+	 * @param tablename the name of the table to be parsed
+	 * @param root the root
+	 * @param sql the sql-statement
 	 */
 	public static void parse(Job job, String tablename, int root, String sql) {
 

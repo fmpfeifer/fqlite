@@ -38,7 +38,10 @@ public class ByteSeqSearcher{
 	    /**
 	     * Searches for the next occurrence of the pattern in the buffer
 	     * starting startRegion the given position
-	     * @throws IOException
+		 * @param file the FileReader
+		 * @param start the start position
+		 * @return the position of the next occurrence of the pattern or -1 if not found
+	     * @throws IOException if an I/O error occurs
 	     */
 	     public long indexOf(RandomAccessFileReader file, long start) throws IOException
 	     {
@@ -53,7 +56,9 @@ public class ByteSeqSearcher{
 	     * byte AFTER the pattern. Else, the buffer is entirely consumed. The latter is because Inputbuffer semantics make it difficult to have
 	     * another reasonable default, i.e. leave the buffer unchanged.
 	     *
+		 * @param file the fileReader
 	     * @return bytes consumed if found, -1 otherwise.
+		 * @throws IOException if an I/O error occurs
 	     */
 	    public long indexOf(RandomAccessFileReader file) throws IOException
 	    {

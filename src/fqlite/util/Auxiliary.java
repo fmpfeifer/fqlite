@@ -93,7 +93,7 @@ public class Auxiliary extends Base {
 	 * Constructor. To return values to the calling job environment, an object
 	 * reference of job object is required.
 	 * 
-	 * @param job
+	 * @param job the job object
 	 */
 	public Auxiliary(Job job) {
 		this.job = job;
@@ -103,11 +103,12 @@ public class Auxiliary extends Base {
 	 * An important step in data recovery is the analysis of the database schema.
 	 * This method allows to read in the schema description into a ByteBuffer.
 	 * 
-	 * @param job
-	 * @param start
-	 * @param buffer
-	 * @param header
-	 * @throws IOException
+	 * @param job the job object
+	 * @param start the start position
+	 * @param buffer the buffer to be written to
+	 * @param header the header
+	 * @return true if successful
+	 * @throws IOException if an I/O error occurs
 	 */
 	public boolean readMasterTableRecord(Job job, int start, ByteBuffer buffer, String header) throws IOException {
 
@@ -242,6 +243,7 @@ public class Auxiliary extends Base {
 	 * This method is used to extract a previously deleted record in unused space a
 	 * page.
 	 * 
+	 * @param job the job object
 	 * @param start      the exact position (offset relative to the page start).
 	 * @param buffer     a ByteBuffer with the data page to analyze.
 	 * @param header     the record header bytes including header length and serial
@@ -249,7 +251,7 @@ public class Auxiliary extends Base {
 	 * @param bs         a data structure that is used to record which areas have
 	 *                   already been searched
 	 * @param pagenumber the number of the page we going to analyze
-	 * @return
+	 * @return the CarvingResult
 	 * @throws IOException if something went wrong during read-up.
 	 */
 	public CarvingResult readDeletedRecord(Job job, int start, ByteBuffer buffer, String header, BitSet bs,
@@ -399,8 +401,8 @@ public class Auxiliary extends Base {
 	/**
 	 * Convert a UTF16-String into an UTF8-String.
 	 * 
-	 * @param s
-	 * @return
+	 * @param s the string to convert
+	 * @return the converted string
 	 */
 	public static String convertToUTF8(String s) {
 		String out = null;
@@ -423,7 +425,17 @@ public class Auxiliary extends Base {
 	 * We only need to parse the headerbytes including the serial types of each
 	 * column. Afterwards we can read each data cell of the tablerow and convert
 	 * into an UTF8 string.
-	 * 
+	 * @param cellstart the start of the cell
+	 * @param buffer the buffer with the data
+	 * @param pagenumber_db the page number
+	 * @param bs the bit set
+	 * @param pagetype the page type
+	 * @param maxlength the maximum length of the cell
+	 * @param firstcol the buffer to be written to
+	 * @param withoutROWID if there is no RowID
+	 * @param filepointer the file pointer
+	 * @return the row
+	 * @throws IOException if an error occurs
 	 * 
 	 **/
 	public SqliteRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
@@ -842,6 +854,8 @@ public class Auxiliary extends Base {
 
 	/**
 	 * Convert a base16 string into a byte array.
+	 * @param s the String to be decoded
+	 * @return the decoded byte array
 	 */
 	public static byte[] decode(String s) {
 		int len = s.length();
@@ -932,8 +946,8 @@ public class Auxiliary extends Base {
 
 	/**
 	 * 
-	 * @param header
-	 * @return
+	 * @param header string with the header
+	 * @return the columns
 	 */
 	public static SqliteElement[] toColumns(String header) {
 		/* hex-String representation to byte array */
@@ -963,8 +977,9 @@ public class Auxiliary extends Base {
 	 * 
 	 * @param headerlength total length of the header in bytes
 	 * @param buffer       the headerbytes
+	 * @param firstcol the buffer to be filled with the first column
 	 * @return the column field
-	 * @throws IOException
+	 * @throws IOException if the buffer is not readable
 	 */
 	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol) throws IOException {
 
@@ -1105,7 +1120,7 @@ public class Auxiliary extends Base {
 	 * 
 	 * @param buffer with varint value
 	 * @return a normal integer value extracted startRegion the buffer
-	 * @throws IOException
+	 * @throws IOException if the buffer is empty
 	 */
 	public static int readUnsignedVarInt(ByteBuffer buffer) throws IOException {
 		int value = 0;
@@ -1128,8 +1143,8 @@ public class Auxiliary extends Base {
 	 * Auxiliary method for reading one of a two-byte number in a data field of type
 	 * short.
 	 * 
-	 * @param b
-	 * @return
+	 * @param b the two bytes byte buffer
+	 * @return the decoded value
 	 */
 	public static int TwoByteBuffertoInt(ByteBuffer b) {
 	
@@ -1185,7 +1200,7 @@ public class Auxiliary extends Base {
 	 * This method will create and assign a pattern object for matching header
 	 * information from a given index entry on binary level.
 	 * 
-	 * @param id
+	 * @param id the index descriptor
 	 */
 	public static void addHeadPattern2Idx(IndexDescriptor id) {
 		List<String> colnames = id.columnnames;
@@ -1423,7 +1438,8 @@ public class Auxiliary extends Base {
 	 * Computes the amount of payload that spills onto overflow pages.
 	 * 
 	 * @param p Payload size
-	 * @return
+	 * @param ps Page size
+	 * @return the amount of bytes that spills onto overflow pages
 	 */
 	public static int computePayloadS(int p, int ps) {
 
@@ -1457,8 +1473,8 @@ public class Auxiliary extends Base {
 	
 	/**
 	 * Conversion routine from a byte array to hex-String representation. 
-	 * @param b
-	 * @return
+	 * @param b the byte array to be converted
+	 * @return the hex-String representation
 	 */
 	public static String I2H(byte[] b) {
     
@@ -1478,7 +1494,8 @@ public class Auxiliary extends Base {
 	
 	/**
      * Converts and 4-Byte integer value into a hex-String. 
-     * 
+     * @param i the integer value to be converted
+	 * @return the hex-String representation
      */
 	public static String Int2Hex(int i)
     {

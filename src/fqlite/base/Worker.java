@@ -27,7 +27,7 @@ public class Worker implements Runnable {
 	 * Constructor. Used to assign a new Task to the 
 	 * Worker object.
 	 * 
-	 * @param rt
+	 * @param rt the job object
 	 */
 	public Worker(Job rt)
 	{
@@ -37,7 +37,7 @@ public class Worker implements Runnable {
 	
 	/**
 	 * A a new task on top of the internal worker's stack. 
-	 * @param t
+	 * @param t The task to be added
 	 */
 	public void addTask(RecoveryTask t)
 	{

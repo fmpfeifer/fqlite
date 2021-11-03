@@ -11,10 +11,10 @@ import java.util.Map;
  * 
  * To run the FQLite from the command line you can use one of the  following options:
  *
- * $> java -jar  fqliteXXX.jar gui						-> start program in gui mode
- * $> java -jar  fqliteXXX.jar nogui <database.db>      -> starts the command line version
- * $> java -jar  fqliteXXX.jar cli <database.db>		-> starts the command line version
- * $> java -jar  fqliteXXX.jar -> start program in gui mode
+ * $&gt; java -jar  fqliteXXX.jar gui						: start program in gui mode
+ * $&gt; java -jar  fqliteXXX.jar nogui &lt;database.db&gt;       : starts the command line version
+ * $&gt; java -jar  fqliteXXX.jar cli &lt;database.db&gt;		    : starts the command line version
+ * $&gt; java -jar  fqliteXXX.jar                           : start program in gui mode
  * 
  * 
  * @author pawlaszc

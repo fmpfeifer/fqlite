@@ -245,9 +245,9 @@ public class Job extends Base {
 	/**
 	 * This is the main processing loop of the program.
 	 * 
-	 * @return
-	 * @throws InterruptedException
-	 * @throws ExecutionException
+	 * @return -1 if error, 0 if success
+	 * @throws InterruptedException the InterruptedException
+	 * @throws ExecutionException the ExecutionException
 	 */
 	public int processDB() throws InterruptedException, ExecutionException {
 
@@ -1153,7 +1153,9 @@ public class Job extends Base {
 	}
 
 	/**
-	 *  Translate a given ByteBuffer to a String. 
+	 *  Translate a given ByteBuffer to a String.
+	 *  @return the decoded String
+	 *	@param tblb The ByteBuffer to be decoded	 
 	 *  
 	 */
 	public String decode(ByteBuffer tblb) {
@@ -1204,8 +1206,8 @@ public class Job extends Base {
 	 * After all tasks are assigned, the worker threads are started 
 	 * and begin processing.  
 	 * 
-	 * @param number
-	 * @param ps
+	 * @param number the number
+	 * @param ps the ps
 	 */
 	public void scan(int number, int ps) {
 		info("Start with scan...");
@@ -1342,8 +1344,8 @@ public class Job extends Base {
 	/**
 	 * Start processing a new Sqlite file.
 	 * 
-	 * @param p
-	 * @return
+	 * @param p path to the Sqlite file
+	 * @return 0 if successful, -1 if not
 	 */
 	public int run(String p) {
 		
@@ -1370,10 +1372,10 @@ public class Job extends Base {
 	/**
 	 * Read a database page from a given offset with a fixed pagesize.
 	 * 
-	 * @param offset
-	 * @param pagesize
+	 * @param offset the offset
+	 * @param pagesize the pagesize
 	 * @return  A <code>ByteBuffer</code> object containing the page content. 
-	 * @throws IOException 
+	 * @throws IOException if an error occurs while reading the page.
 	 */
 	public ByteBuffer readPageWithOffset(long offset, int pagesize) throws IOException {
 
@@ -1393,10 +1395,10 @@ public class Job extends Base {
 	 *  Since all pages are assigned to a unique number in SQLite, we can read a 
 	 *  page by using this value together with the pagesize. 
 	 *  
-	 * @param pagenumber (>=1)
-	 * @param pagesize
+	 * @param pagenumber (&gt;=1)
+	 * @param pagesize size of page
 	 * @return  A <code>ByteBuffer</code> object containing the page content. 
-	 * @throws IOException 
+	 * @throws IOException if an error occurs while reading the page.
 	 */
 	public ByteBuffer readPageWithNumber(long pagenumber, int pagesize) throws IOException {
 		
@@ -1540,8 +1542,8 @@ public class Job extends Base {
 
 	/**
 	 * Return the columnnames as a String array for a given table or indextable name.
-	 * @param tablename
-	 * @return
+	 * @param tablename name of the table or index
+	 * @return the headerString
 	 */
 	public String[] getHeaderString(String tablename)
 	{
@@ -1563,8 +1565,8 @@ public class Job extends Base {
 	
 	/**
      * Save findings into a comma separated file.
-     * @param filename
-     * @param lines
+     * @param filename file to write results to
+     * @param lines lines to write
      */
     public void writeResultsToFile(String filename, String [] lines) {
         Logger.out.info("Write results to file...");

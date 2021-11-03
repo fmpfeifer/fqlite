@@ -26,8 +26,8 @@ public class DatetimeConverter{
 	 * The difference between a Core Data timestamp and a Unix timestamp (seconds since 1/1/1970) is 978307200 seconds.
 	 * 
 	 * 
-	 * @param timestamp
-	 * @return
+	 * @param timestamp timestamp im MAC-Absolut-Time
+	 * @return decoded timestamp
 	 */
 	
 	public static String isMacAbsoluteTime(double timestamp)
@@ -47,8 +47,8 @@ public class DatetimeConverter{
 	/**
 	 *  Current Unix epoch time in  So the Epoch is Unix time 0 (1-1-1970) but it is also used as Unix Time or Unix Timestamp.
 	 *  
-	 * @param time
-	 * @return
+	 * @param timestamp the time to be checked
+	 * @return the decoded time if is Unix Epoch, null otherwise
 	 */
 	public static String isUnixEpoch(long timestamp)
 	{
@@ -62,8 +62,8 @@ public class DatetimeConverter{
 	
 	/**
 	 * 
-	 * @param timestamp
-	 * @return
+	 * @param timestamp the time to be checked
+	 * @return the decoded time
 	 */
 	public static String isJulianDate(double timestamp)
 	{
@@ -75,6 +75,8 @@ public class DatetimeConverter{
   	 * Convert the given Julian Day to Gregorian Date (in UT time zone).
      * Based on the formula given in the Explanitory Supplement to the
      * Astronomical Almanac, pg 604.
+	 * @param jd the Julian Day to be converted
+	 * @return the Date object
      */
     private static Date calculateGregorianDate(double jd) {
         int l = (int) jd + 68569;

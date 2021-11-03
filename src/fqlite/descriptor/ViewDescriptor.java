@@ -37,7 +37,7 @@ public class ViewDescriptor extends AbstractDescriptor {
 
 	/**
 	 * Return the number of columns (startRegion the component header). 
-	 * @return
+	 * @return the number of columns
 	 */
 	public int numberofColumns() {
 		return getColumntypes().size();

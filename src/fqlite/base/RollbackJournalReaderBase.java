@@ -100,8 +100,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * This method is the main processing loop. First the header is analyzed.
 	 * Afterwards all write ahead frames are recovered.
 	 * 
-	 * @return
-	 * @throws IOException
+	 * @throws IOException if an I/O error occurs
 	 */
 	public void parse() throws IOException {
 		Path p = Paths.get(path);
@@ -500,8 +499,8 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * 
 	 * read the next db-page.
 	 * 
-	 * @return
-	 * @throws IOException
+	 * @return the buffer with the page
+	 * @throws IOException if an error occurs
 	 */
 	protected ByteBuffer readPage() throws IOException {
 		return file.allocateAndReadBuffer(ps);
@@ -510,7 +509,9 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/**
 	 * This method is called to carve a data page for records.
 	 * 
+	 * @param buffer the buffer
 	 * @param content page content as hex-string
+	 * @param crv Carver object
 	 */
 	public void carve(ByteBuffer buffer, String content, Carver crv) {
 
@@ -656,7 +657,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/**
 	 * Check the BitSet for gaps, i.e. regions we still have to carve.
 	 * 
-	 * @return
+	 * @return the gaps found
 	 */
 	public LinkedList<Gap> findGaps() {
 		LinkedList<Gap> gaps = new LinkedList<Gap>();
@@ -707,6 +708,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * This method is called to carve a data page for records.
 	 * 
 	 * @param content page content as hex-string
+	 * @param crv the Carver object
 	 */
 	public void carve(String content, Carver crv) {
 

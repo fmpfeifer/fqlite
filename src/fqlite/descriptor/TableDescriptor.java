@@ -281,8 +281,9 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	/**
 	 * Returns a regex for only some serialtypes of the component.
 	 * 
-	 * @param startcolumn
-	 * @param endcolumn
+	 * @param startcolumn the first column to be included in the regex
+	 * @param endcolumn the last column to be included in the regex
+	 * @param multicol true, if the regex should match multiple columns
 	 * @return regex
 	 */
 	public String getPattern(int startcolumn, int endcolumn, boolean multicol) {
@@ -297,7 +298,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 
 	/**
 	 * Returns the number of the root data page. 
-	 * @return
+	 * @return the number of the root data page
 	 */
 	public int getRootOffset() {
 		return this.root;
@@ -309,7 +310,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	 * the total number of bytes in the header. 
 	 * The varint value is the size of the header in bytes including 
 	 * the size varint itself.
-	 * @return
+	 * @return the component header length
 	 */
 	public int getLength() {
 		return 1 + size;
@@ -317,7 +318,7 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 
 	/**
 	 * Return the number of columns (startRegion the component header). 
-	 * @return
+	 * @return the number of columns
 	 */
 	public int numberofColumns() {
 		return getColumntypes().size();
@@ -336,9 +337,9 @@ public class TableDescriptor extends AbstractDescriptor implements Comparable<Ta
 	 * strings and BLOBs might extend to two or three byte varints,
 	 * but that is the exception rather than the rule.
 	 * 
-	 * @param serialtype
-	 * @param multicol
-	 * @return
+	 * @param serialtype the serial type
+	 * @param multicol true if multi column
+	 * @return the regular expression for the pattern matching
 	 */
 	private String getColumn(String serialtype, boolean multicol) {
 

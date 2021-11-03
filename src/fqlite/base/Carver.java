@@ -51,9 +51,14 @@ public class Carver extends Base {
 	 * This method allows to carve for hidden records in the slack space (uncharted
 	 * region: a region that does not belong to the header or to the cell content
 	 * region).
-	 *
+	 * @param fromidx the index to start carving from
+	 * @param toidx  the index to stop carving at
+	 * @param mat   the matcher to use
+	 * @param headertype the type of the header to search for
+	 * @param tbd  the TableDescriptor
+	 * @param firstcol to append the result to
+	 * @return if any record was carved
 	 */
-
 	public boolean carve(int fromidx, int toidx, SerialTypeMatcher mat, int headertype, TableDescriptor tbd,
 			StringBuffer firstcol) {
 		Auxiliary c = new Auxiliary(job);

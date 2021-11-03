@@ -10,7 +10,7 @@ import java.util.concurrent.ExecutionException;
 * 
 * To run the FQLite from the command line you can use the following command:
 *
-* $> java fqlite.base.MAIN <database.db>
+* $&gt; java fqlite.base.MAIN &lt;database.db&gt;
 *
 * 
 *     __________    __    _ __     
