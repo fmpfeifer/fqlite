@@ -207,6 +207,8 @@ public class Job extends Base {
 	/** Collect resources to close at end of processing */
 	private Deque<Closeable> resourcesToClose = new LinkedList<>();
 
+	public boolean recoverOnlyDeletedRecords = false;
+
 	  
 	/******************************************************************************************************/
 	
@@ -1608,6 +1610,17 @@ public class Job extends Base {
     }
 
     public void addRow(SqliteRow row) {
+		if (recoverOnlyDeletedRecords) {
+			// only add rows that are marked as deleted
+			String recordType = row.getRecordType();
+			if (recordType != null) {
+				if ((!recordType.contains(Global.DELETED_RECORD_IN_PAGE)) ||
+					(!recordType.contains(Global.UNALLOCATED_SPACE)) || 
+					(!recordType.contains(Global.FREELIST_ENTRY))) {
+					return;
+				}
+			}
+		}
         ll.add(row);
         List<SqliteRow> tables = tableRows.get(row.getTableName());
         if (null == tables) {
