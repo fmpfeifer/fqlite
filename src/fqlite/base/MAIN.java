@@ -1,5 +1,6 @@
 package fqlite.base;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 
@@ -131,7 +132,7 @@ public class MAIN {
 				/* start processing the db-file */
 				job.processDB();
 
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IOException e) {
 				e.printStackTrace();
 			}
 

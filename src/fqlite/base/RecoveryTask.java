@@ -1,5 +1,6 @@
 package fqlite.base;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.LinkedList;
@@ -42,12 +43,14 @@ public class RecoveryTask extends Base implements Runnable {
 	 * @param pagenumber the page number
 	 * @param pagesize the page size
 	 * @param freeList if it is a free list
+	 * 
+	 * @throws IOException if an I/O error occurs.
 	 */
-	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList) {
+	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList) throws IOException {
 		
 		
 		if (job.file.size() < offset)
-			System.exit(-1);
+			throw new IOException("offset is out of bounds");
 		
 		this.job = job;
 		this.pagesize = pagesize;

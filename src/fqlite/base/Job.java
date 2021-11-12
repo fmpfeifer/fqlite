@@ -250,8 +250,9 @@ public class Job extends Base {
 	 * @return -1 if error, 0 if success
 	 * @throws InterruptedException the InterruptedException
 	 * @throws ExecutionException the ExecutionException
+	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	public int processDB() throws InterruptedException, ExecutionException {
+	public int processDB() throws InterruptedException, ExecutionException, IOException {
 
 		allreadyvisit = ConcurrentHashMap.newKeySet();
 
@@ -1058,13 +1059,9 @@ public class Job extends Base {
 			/*******************************************************************/
 			linesReady();
 
-		} catch (IOException e) {
-
-			info("Error: Could not open file.");
-			System.exit(-1);
+		} finally {
+			closeResources();
 		}
-
-		closeResources();
 
 		for (Entry<String, TableDescriptor> tableEntry : headers.entrySet()) {
 		    List<SqliteRow> rows = tableRows.get(tableEntry.getKey());
@@ -1210,8 +1207,10 @@ public class Job extends Base {
 	 * 
 	 * @param number the number
 	 * @param ps the ps
+	 * 
+	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	public void scan(int number, int ps) {
+	public void scan(int number, int ps) throws IOException {
 		info("Start with scan...");
 		/* create a new threadpool to analyze the freepages */
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Global.numberofThreads);
@@ -1356,7 +1355,7 @@ public class Job extends Base {
 		long start = System.currentTimeMillis();
 		try {
 			hashcode = processDB();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException | ExecutionException | IOException e) {
 			e.printStackTrace();
 		}
 		long end = System.currentTimeMillis();
