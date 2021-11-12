@@ -4,7 +4,7 @@
   <artifactId>libfqlite</artifactId>
   <packaging>jar</packaging>
 
-  <version>1.56.03-beta</version>
+  <version>1.56.04-beta</version>
   <name>libfqlite</name>
 
   <description>FQLite is a tool to find and restore deleted records in sqlite databases.
