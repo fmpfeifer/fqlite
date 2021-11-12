@@ -119,4 +119,16 @@ public class SqliteRow {
         }
         return rowData.get(idx).getBlobValue();
     }
+
+    public boolean isDeletedRow() {
+        if (recordType != null) {
+            if (recordType.contains(Global.DELETED_RECORD_IN_PAGE) ||
+                recordType.contains(Global.FREELIST_ENTRY) ||
+                recordType.contains(Global.UNALLOCATED_SPACE)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

@@ -1611,13 +1611,8 @@ public class Job extends Base {
     public void addRow(SqliteRow row) {
 		if (recoverOnlyDeletedRecords) {
 			// only add rows that are marked as deleted
-			String recordType = row.getRecordType();
-			if (recordType != null) {
-				if ((!recordType.contains(Global.DELETED_RECORD_IN_PAGE)) ||
-					(!recordType.contains(Global.UNALLOCATED_SPACE)) || 
-					(!recordType.contains(Global.FREELIST_ENTRY))) {
-					return;
-				}
+			if (!row.isDeletedRow()) {
+				return;
 			}
 		}
         ll.add(row);
@@ -1634,7 +1629,7 @@ public class Job extends Base {
     }
 
     public synchronized List<SqliteRow> getRowsForTable(String tableName) {
-        return tableRows.get(tableName);
+        return tableRows.getOrDefault(tableName, Collections.emptyList());
     }
 
     public synchronized Set<String> getTablesNames() {
