@@ -32,6 +32,10 @@ public class HeaderPattern {
 		return pattern.get(idx);
 	}
 	
+	public void change2RowID(int idx)
+    {
+        pattern.set(idx, new ZeroConstrain());
+    }
 	
 	public void add(Constraint c)
 	{

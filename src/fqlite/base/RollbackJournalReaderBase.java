@@ -575,7 +575,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				if (next.to - next.from > 10)
 					/* do we have at least one match ? */
-					if (c.carve(next.from + 4, next.to, stm, CarverTypes.NORMAL, tab.get(n), firstcol)) {
+					if (c.carve(next.from + 4, next.to, stm, CarverTypes.NORMAL, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 						debug("*****************************  STEP NORMAL finished with matches");
 
 					}
@@ -587,7 +587,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				Gap next = gaps.get(a);
 
-				if (c.carve(next.from + 4, next.to, stm, CarverTypes.COLUMNSONLY, tab.get(n), firstcol)) {
+				if (c.carve(next.from + 4, next.to, stm, CarverTypes.COLUMNSONLY, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 					debug("*****************************  STEP COLUMNSONLY finished with matches");
 
 				}
@@ -599,7 +599,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				Gap next = gaps.get(a);
 
-				if (c.carve(next.from + 4, next.to, stm, CarverTypes.FIRSTCOLUMNMISSING, tab.get(n), firstcol)) {
+				if (c.carve(next.from + 4, next.to, stm, CarverTypes.FIRSTCOLUMNMISSING, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 					debug("*****************************  STEP FIRSTCOLUMNMISSING finished with matches");
 
 				}
@@ -773,7 +773,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				if (next.to - next.from > 10)
 					/* do we have at least one match ? */
-					if (c.carve(next.from + 4, next.to, stm, CarverTypes.NORMAL, tab.get(n), firstcol)) {
+					if (c.carve(next.from + 4, next.to, stm, CarverTypes.NORMAL, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 						debug("*****************************  STEP NORMAL finished with matches");
 
 					}
@@ -785,7 +785,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				Gap next = gaps.get(a);
 
-				if (c.carve(next.from + 4, next.to, stm, CarverTypes.COLUMNSONLY, tab.get(n), firstcol)) {
+				if (c.carve(next.from + 4, next.to, stm, CarverTypes.COLUMNSONLY, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 					debug("*****************************  STEP COLUMNSONLY finished with matches");
 
 				}
@@ -797,7 +797,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 				Gap next = gaps.get(a);
 
-				if (c.carve(next.from + 4, next.to, stm, CarverTypes.FIRSTCOLUMNMISSING, tab.get(n), firstcol)) {
+				if (c.carve(next.from + 4, next.to, stm, CarverTypes.FIRSTCOLUMNMISSING, tab.get(n), firstcol) != Global.CARVING_ERROR) {
 					debug("*****************************  STEP FIRSTCOLUMNMISSING finished with matches");
 
 				}

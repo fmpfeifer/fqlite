@@ -416,7 +416,7 @@ public class SimpleSQLiteParser extends Base {
         	
         	@Override public void enterColumn_constraint(SQLiteParser.Column_constraintContext ctx)
         	{ 
-        		String constraint = ctx.getText();
+        		String constraint = ctx.getText().toUpperCase();
         		
         		if (constraint.contains("NOTNULL"))
         			constraints.put(column,constraint);
@@ -428,7 +428,7 @@ public class SimpleSQLiteParser extends Base {
         		String constraint = ctx.getText();
         		
         		info("Columnconstraint " + constraint);
-        		cons += constraint + " ";
+        		cons += constraint.toUpperCase() + " ";
         	}
         	
         
@@ -516,6 +516,9 @@ public class SimpleSQLiteParser extends Base {
 	private String getType(String s)
 	{
 		String type="";
+		
+		/* Attention: issue 3 */
+        s = s.toUpperCase();
 		
 		info("Datentyp" + s);
 		

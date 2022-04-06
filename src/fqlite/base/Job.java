@@ -222,7 +222,7 @@ public class Job extends Base {
 		/* First - try to analyze the db-schema */
 		/*
 		 * we have to do this before we open the database because of the concurrent
-		 * access
+		 * access in multi threading mode
 		 */
 
 		/* try to open the wal-file in read-only mode */
@@ -479,7 +479,7 @@ public class Job extends Base {
 
 			/*******************************************************************/
 
-			/* determine the sqlversion ot db on offset 96 */
+			/* determine the SQL-version of db on offset 96 */
 
 			byte version[] = new byte[4];
 			buffer.position(96);
@@ -967,7 +967,11 @@ public class Job extends Base {
 					// now read the first 4 Byte to get the offset for the next free page list
 					byte nextlistoffset[] = new byte[4];
 
-					fplist.get(nextlistoffset);
+					try {
+                        fplist.get(nextlistoffset);
+                    } catch(Exception err) {
+                        debug("Warning Error while parsing free list.");
+                    }
 
 					/*
 					 * is there a further page - <code>nextlistoffset</code> has a value > 0 in this
@@ -988,7 +992,11 @@ public class Job extends Base {
 
 					// now read the number of entries for this particular page
 					byte numberOfEntries[] = new byte[4];
-					fplist.get(numberOfEntries);
+					try {
+                        fplist.get(numberOfEntries);
+                    } catch(Exception err) {
+                    }
+					
 					ByteBuffer e = ByteBuffer.wrap(numberOfEntries);
 					int entries = e.getInt();
 					info(" Number of Entries in freepage list " + entries);

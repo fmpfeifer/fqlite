@@ -59,10 +59,9 @@ public class Carver extends Base {
 	 * @param firstcol to append the result to
 	 * @return if any record was carved
 	 */
-	public boolean carve(int fromidx, int toidx, SerialTypeMatcher mat, int headertype, TableDescriptor tbd,
+	public int carve(int fromidx, int toidx, SerialTypeMatcher mat, int headertype, TableDescriptor tbd,
 			StringBuffer firstcol) {
 		Auxiliary c = new Auxiliary(job);
-		boolean match = false;
 
 		switch (headertype) {
 		case CarverTypes.NORMAL:
@@ -78,7 +77,7 @@ public class Carver extends Base {
 		
 
 		if((toidx - fromidx) <= 4)
-			return match;
+			return -1;
 		
 		/* set search region */
 		mat.region(fromidx, toidx);
@@ -114,7 +113,6 @@ public class Carver extends Base {
 			debug("Match (0..NORMAL, 1..NOLENGTH, 2..FIRSTCOLMISSING) : " + headertype);
 			debug("found " + m);
 			debug("Match: " + m + " on pos:" + ((pagenumber - 1) * job.ps + from));
-			match = true;
 			
 			boolean missing = false;
 			if (headertype == CarverTypes.NORMAL) {
@@ -138,8 +136,15 @@ public class Carver extends Base {
 					m = firstcol.substring(0,2) + m; 
 		
 				} 
-				else
-					m = "02" + m;
+				else {
+				    /* is the first column a integer colum or something else?*/
+                    if (tbd.primarykeycolumns != null) {
+                      m = "00" + m;
+                    } else {
+                      m = "02" + m;
+                    }
+				}
+					
 
 				m = addHeaderByte(m);
 			}
@@ -173,13 +178,13 @@ public class Carver extends Base {
 
 				} catch (Exception err) {
 					warning("Could not read record" + err.toString());
-					return false;
+					return -1;
 				}
 			}
 
 		}
 
-		return match;
+		return 0;
 	}
 
 	private String addHeaderByte(String s) {
