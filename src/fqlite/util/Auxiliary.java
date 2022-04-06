@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -22,6 +24,7 @@ import fqlite.pattern.HeaderPattern;
 import fqlite.pattern.IntegerConstraint;
 import fqlite.types.SerialTypes;
 import fqlite.types.StorageClasses;
+import java.nio.Buffer;
 
 /**
  * This class offers a number of useful methods that are needed from time to
@@ -316,7 +319,7 @@ public class Auxiliary extends Base {
 				 * we need to increment page number by one since we start counting with zero for
 				 * page 1
 				 */
-				byte[] extended = readOverflow(overflow - 1);
+				byte[] extended = readOverflowIterativ(overflow - 1);
 
 				byte[] c = new byte[pll + job.ps];
 
@@ -326,13 +329,31 @@ public class Auxiliary extends Base {
 					originalbuffer[bb] = buffer.get(bb);
 				}
 
-				buffer.position(last);
+				//buffer.position(last);
 
-				/* copy spilled overflow of current page into extended buffer */
-				System.arraycopy(originalbuffer, buffer.position(), c, 0, so - phl);
-				/* append the rest startRegion the overflow pages to the buffer */
-				System.arraycopy(extended, 0, c, so - phl, extended.length - so);
-				bf = ByteBuffer.wrap(c);
+                /* copy spilled overflow of current page into extended buffer */
+                //System.arraycopy(originalbuffer, buffer.position(), c, 0, so + 7);
+                /* append the rest startRegion the overflow pages to the buffer */
+                //System.arraycopy(extended, 0, c, so - phl -1, extended.length - so);
+                //bf = ByteBuffer.wrap(c);
+
+
+                buffer.position(last);
+                bf = null;
+
+                /* copy spilled overflow of current page into extended buffer */
+                System.arraycopy(originalbuffer, buffer.position(), c, 0, so + 7 );  // - phl
+                /* append the rest startRegion the overflow pages to the buffer */
+                try {
+                    if (null != extended)
+                        // copy every byte from extended (beginning with index 0) into byte-array c, at position so-phl
+                        System.arraycopy(extended, 0, c, so - phl - 1, pll - so);
+                        bf = ByteBuffer.wrap(c);
+                } catch (ArrayIndexOutOfBoundsException err) {
+                    info("Error IndexOutOfBounds");
+                } catch (NullPointerException err2) {
+                    info("Error NullPointer in ");
+                }
 
 			} else {
 				pll = so;
@@ -491,6 +512,7 @@ public class Auxiliary extends Base {
 			unkown = true;
 		}
 
+		info("cellstart for pll: " + ((pagenumber_db - 1) * job.ps + cellstart));
 		// length of payload as varint
 		buffer.position(cellstart);
 		int pll = readUnsignedVarInt(buffer);
@@ -556,6 +578,16 @@ public class Auxiliary extends Base {
 		int pp = buffer.position();
 		String hh = getHeaderString(phl, buffer);
 		buffer.position(pp);
+		
+		info("Header-String" + hh);
+
+        int[] values = readVarInt(decode(hh));
+        int cc = 0;
+        for(int v: values)
+        {
+            cc++;
+            info("header length [" + cc + "] " + v);
+        }
 
 		columns = getColumns(phl, buffer, firstcol);
 
@@ -604,7 +636,8 @@ public class Auxiliary extends Base {
 				return null;
 			}
 			try {
-				buffer.position(buffer.position() + so - phl - 1);
+			    /* read overflow */
+			    buffer.position(buffer.position() + so - phl - 1);
 				overflow = buffer.getInt();
 			} catch (Exception err) {
 				return null;
@@ -619,7 +652,7 @@ public class Auxiliary extends Base {
 			 * we need to increment page number by one since we start counting with zero for
 			 * page 1
 			 */
-			byte[] extended = readOverflow(overflow - 1);
+			byte[] extended = readOverflowIterativ(overflow - 1);
 
 			byte[] c = new byte[pll + job.ps];
 
@@ -631,22 +664,25 @@ public class Auxiliary extends Base {
 
 			buffer.position(last);
 			/* copy spilled overflow of current page into extended buffer */
-			System.arraycopy(originalbuffer, buffer.position(), c, 0, so - phl);
+			System.arraycopy(originalbuffer, buffer.position(), c, 0, so + 7 ); // - phl
 			/* append the rest startRegion the overflow pages to the buffer */
 			try {
-				if (null != extended)
-					System.arraycopy(extended, 0, c, so - phl, pll - so);
+				if (null != extended) {
+				    // copy every byte from extended (beginning with index 0) into byte-array c, at position so-phl
+                    System.arraycopy(extended, 0, c, so - phl -1, pll - so);
+				}
 			} catch (ArrayIndexOutOfBoundsException err) {
 				err("Error IndexOutOfBounds");
 			} catch (NullPointerException err2) {
 				err("Error NullPointer in ");
 			}
 
+			/* now we have the complete overflow in one byte-array */
 			ByteBuffer bf = ByteBuffer.wrap(c);
 			bf.position(0);
 
 			co = 0;
-			/* start reading the content */
+			/* start reading the content of each column */
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";NULL");
@@ -667,7 +703,9 @@ public class Auxiliary extends Base {
 				    }
 
 				    try {
-				        bf.get(value);
+				        if(value.length>0) {
+	                        bf.get(value);
+				        }
 				        row.append(new SqliteElementData(en, value));
 				        //lineUTF.append(write(co, en, value));
 
@@ -681,7 +719,7 @@ public class Auxiliary extends Base {
 
 			// set original buffer pointer to the end of the spilled payload
 			// just before the next possible record
-			buffer.position(last + so - phl - 1);
+			//buffer.position(last + so - phl - 1);
 
 		} else {
 			/*
@@ -787,6 +825,80 @@ public class Auxiliary extends Base {
 
 		return null;
 	}
+	
+	/**
+     * Reads the specified page as overflow.
+     * 
+     * Background: When the payload of a record is to large, it is spilled onto
+     * overflow pages. Overflow pages form a linked list. The first four bytes of
+     * each overflow page are a big-endian integer which is the page number of the
+     * next page in the chain, or zero for the final page in the chain. The fifth
+     * byte through the last usable byte are used to hold overflow content.
+     * 
+     * @param pagenumber
+     * @return
+     *
+     */
+    private byte[] readOverflowIterativ(int pagenumber) throws IOException
+    {
+        List<ByteBuffer> parts = new LinkedList<ByteBuffer>();
+        boolean more = true;
+        ByteBuffer overflowpage = null;
+        int next = pagenumber;
+
+
+        while(more)
+        {
+            info("before Read() " + next);
+            /* read next overflow page into buffer */
+            overflowpage = job.readPageWithNumber(next, job.ps);
+
+            if (overflowpage != null) {
+                overflowpage.position(0);
+                next = overflowpage.getInt()-1;
+                info(" next overflow:: " + next);
+            } 
+            else {
+                more = false;
+                break;
+            }       
+
+
+            /*
+             * we always crab the complete overflow-page minus the first four bytes - they
+             * are reserved for the (possible) next overflow page offset
+             **/
+            byte[] current = new byte[job.ps - 4];
+            overflowpage.position(4);
+            overflowpage.get(current, 0, job.ps - 4);
+            // Wrap a byte array into a buffer
+            ByteBuffer part = ByteBuffer.wrap(current);
+            parts.add(part);
+
+            if (next < 0 || next > job.numberofpages) {
+                // termination condition for the recursive callup's
+                debug("No further overflow pages");
+                /* startRegion the last overflow page - do not copy the zero bytes. */
+                more = false;
+            }
+
+        }
+
+        /* try to merge all the ByteBuffers into one array */
+        if (parts == null || parts.size() == 0) {
+            return ByteBuffer.allocate(0).array();
+        } 
+        else if (parts.size() == 1) {
+            return parts.get(0).array();
+        } 
+        else {
+            ByteBuffer fullContent = ByteBuffer.allocate(parts.stream().mapToInt(Buffer::capacity).sum());
+            parts.forEach(fullContent::put);
+            fullContent.flip();
+            return fullContent.array();     
+        }
+
+    }
 
 	/**
 	 * Reads the specified page as overflow.
@@ -801,9 +913,15 @@ public class Auxiliary extends Base {
 	 * @param pagenumber
 	 * @return all bytes that belong to the payload
 	 * @throws IOException 
+	 * @deprecated
 	 */
-	private byte[] readOverflow(int pagenumber) throws IOException {
+    private byte[] readOverflowRecursiv(int pagenumber, HashSet<Integer> visited) throws IOException {
 		byte[] part = null;
+		
+		if (visited.contains(pagenumber))
+        {
+            /* avoid infinite recursion and stack overflow error*/
+        }
 
 		/* read the next overflow page startRegion file */
 		if (pagenumber > job.ps)
@@ -814,18 +932,18 @@ public class Auxiliary extends Base {
 		if (overflowpage != null) {
 			overflowpage.position(0);
 			overflow = overflowpage.getInt();
-			debug(" overflow:: " + overflow);
+			info(" overflow:: " + overflow);
 		} else {
 			return null;
 		}
 
-		if (overflow == 0) {
+		if (overflow == 0 || overflow > job.numberofpages) {
 			// termination condition for the recursive callup's
 			debug("No further overflow pages");
 			/* startRegion the last overflow page - do not copy the zero bytes. */
 		} else {
 			/* recursively call next overflow page in the chain */
-			part = readOverflow(overflow);
+			part = readOverflowRecursiv(overflow,visited);
 		}
 
 		/*
@@ -1097,6 +1215,10 @@ public class Auxiliary extends Base {
 		int m = ((u - 12) * 32 / 255) - 23;
 
 		int k = m + ((p - m) % (u - 4));
+		
+		info("p " + p);
+        info("k " + k);
+        info("m " + m);
 
 		// case 1: all P bytes of payload are stored directly on the btree page without
 		// overflow.
@@ -1124,20 +1246,15 @@ public class Auxiliary extends Base {
 	 * @throws IOException if the buffer is empty
 	 */
 	public static int readUnsignedVarInt(ByteBuffer buffer) throws IOException {
-		int value = 0;
-		int b;
-		int shift = 0;
 
-		// as long as we have a byte with most significant bit value 1
-		// there are more byte to read
-		while (((b = buffer.get()) & 0x80) != 0) {
-
-			shift = 7;
-			value |= (b & 0x7F) << shift;
-
-		}
-
-		return value | b;
+        byte b = buffer.get();    
+        int value = b & 0x7F;
+        while ((b & 0x80) != 0) {
+            b = buffer.get();
+            value <<= 7;
+            value |= (b & 0x7F);
+        }
+        return value;
 	}
 
 	/**
@@ -1251,6 +1368,11 @@ public class Auxiliary extends Base {
 
 	}
 
+	/**
+     * Converts a byte array to Hex-String. 
+     * @param bytes Bytes
+     * @return String with hex representation of bytes
+     */
 	public static String bytesToHex(byte[] bytes) {
 
 		StringBuilder sb = new StringBuilder();
@@ -1266,12 +1388,24 @@ public class Auxiliary extends Base {
 
 	}
 
+	/**
+     * Converts a single byte to a Hex-String.
+     * @param b byte
+     * @return String with hex representation of byte
+     */
 	public static String byteToHex(byte b) {
 		byte[] ch = new byte[1];
 		ch[0] = b;
 		return bytesToHex(ch);
 	}
 	
+	/**
+     * Converts the content of a ByteBuffer object 
+     * into a Hex-String.
+     * 
+     * @param bb Bytes
+     * @return String with hex representation of bytes
+     */
 	public static String bytesToHex(ByteBuffer bb)
 	{
 		int limit = bb.limit();
@@ -1292,6 +1426,16 @@ public class Auxiliary extends Base {
 		return new String(hexChars);
 	}
 	
+	/**
+     * Converts specified range of the specified array into a Hex-String. 
+     * The initial index of the range (from) must lie between zero and 
+     * original.length, inclusive. 
+     * 
+     * @param bytes Bytes
+     * @param fromidx start index
+     * @param toidx end index
+     * @return String with hex representation of bytes
+     */
 	public static String bytesToHex(byte[] bytes, int fromidx, int toidx) {
 		char[] hexChars = new char[(toidx - fromidx + 2) * 2];
 
@@ -1304,7 +1448,48 @@ public class Auxiliary extends Base {
 	}
 
 	
-	public static int[] readVarInt(byte[] values) {
+	/**
+     * Read a variable length integer from the supplied ByteBuffer
+     * @param values in buffer to read from
+     * @return the int value
+     */
+    public static int[] readVarInt(byte[] values){
+
+        ByteBuffer in = ByteBuffer.wrap(values);
+        LinkedList<Integer> res = new LinkedList<Integer>();
+
+
+        do
+        {
+            byte b = in.get();            
+            int value = b & 0x7F;
+            while ((b & 0x80) != 0) {
+                b = in.get();
+                value <<= 7;
+                value |= (b & 0x7F);
+            }
+
+            res.add(value);
+
+        } while(in.position()<in.limit());
+
+        int[] result = new int[res.size()];
+        int n = 0;
+        Iterator<Integer> it = res.iterator();
+        while (it.hasNext()) {
+            result[n] = it.next();
+            n++;
+        }
+        return result;
+    }
+
+    /**
+     * Don't use. Old implementation. 
+     * @param values values to read
+     * @return int array
+     * @deprecated
+     */
+    public static int[] readVarIntOld(byte[] values) {
 		
 		int value = 0;
 		int counter = 0;
@@ -1477,7 +1662,7 @@ public class Auxiliary extends Base {
 	 * @param b the byte array to be converted
 	 * @return the hex-String representation
 	 */
-	public static String I2H(byte[] b) {
+	private static String I2H(byte[] b) {
     
         char buf[] = new char[b.length * 3 - 1];
         int k = b[0] & 0xff;
@@ -1503,4 +1688,22 @@ public class Auxiliary extends Base {
     	 return Auxiliary.bytesToHex(new byte[] {(byte)(i >>> 24),(byte)(i >>> 16),(byte)(i >>> 8), (byte)i});
     }
     
+	public static int varintHexString2Integer(String s) throws IOException
+    {
+        byte [] value = hexStringToByteArray(s);
+        ByteBuffer bb =  ByteBuffer.wrap(value);
+        return readUnsignedVarInt(bb);
+    }
+
+    /* s must be an even-length string. */
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                                 + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+	
 }
