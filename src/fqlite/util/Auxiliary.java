@@ -3,9 +3,9 @@ package fqlite.util;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -19,7 +19,6 @@ import fqlite.base.SqliteElementData;
 import fqlite.base.SqliteRow;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
-import fqlite.parser.SQLiteSchemaParser;
 import fqlite.pattern.HeaderPattern;
 import fqlite.pattern.IntegerConstraint;
 import fqlite.types.SerialTypes;
@@ -119,7 +118,7 @@ public class Auxiliary extends Base {
 
 		buffer.position(start);
 
-		columns = toColumns(header);
+		columns = toColumns(header, job.db_encoding);
 
 		if (null == columns)
 			return false;
@@ -237,7 +236,7 @@ public class Auxiliary extends Base {
 		}
 
 		// finally, we have all information in place to parse the CREATE statement
-		SQLiteSchemaParser.parse(job, tablename, rootpage, statement);
+		job.schemaParser.parse(job, tablename, rootpage, statement);
 
 		return true;
 	}
@@ -269,7 +268,7 @@ public class Auxiliary extends Base {
 		/* skip the header length byte */
 		header = header.substring(2);
 
-		columns = toColumns(header);
+		columns = toColumns(header, job.db_encoding);
 
 		if (null == columns)
 			return null;
@@ -461,7 +460,7 @@ public class Auxiliary extends Base {
 	 * 
 	 **/
 	public SqliteRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
-			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer) throws IOException {
+			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer, Charset charset) throws IOException {
 
 		boolean unkown = false;
 
@@ -553,7 +552,7 @@ public class Auxiliary extends Base {
 
 		debug("Header Length int: " + phl + " as hex : " + Integer.toHexString(phl));
 
-		phl = phl - 1;
+		phl -= 1;
 
 		/*
 		 * maxlength field says something about the maximum bytes we can read before in
@@ -579,6 +578,7 @@ public class Auxiliary extends Base {
 		String hh = getHeaderString(phl, buffer);
 		buffer.position(pp);
 		
+		/* this sesssion seems to be for debug, so skip it ** FMP
 		info("Header-String" + hh);
 
         int[] values = readVarInt(decode(hh));
@@ -587,9 +587,9 @@ public class Auxiliary extends Base {
         {
             cc++;
             info("header length [" + cc + "] " + v);
-        }
+        }*/
 
-		columns = getColumns(phl, buffer, firstcol);
+		columns = getColumns(phl, buffer, firstcol, charset);
 
 		if (null == columns) {
 			debug(" No valid header. Skip recovery.");
@@ -686,7 +686,7 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";NULL");
-				    row.append(new SqliteElementData(null));
+				    row.append(new SqliteElementData(null, charset));
 					continue;
 				}
 
@@ -737,7 +737,7 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";");
-				    row.append(new SqliteElementData(""));
+				    row.append(new SqliteElementData("", charset));
 					continue;
 				}
 
@@ -1068,10 +1068,10 @@ public class Auxiliary extends Base {
 	 * @param header string with the header
 	 * @return the columns
 	 */
-	public static SqliteElement[] toColumns(String header) {
+	public static SqliteElement[] toColumns(String header, Charset charset) {
 		/* hex-String representation to byte array */
 		byte[] bcol = Auxiliary.decode(header);
-		return get(bcol);
+		return get(bcol, charset);
 	}
 
 	public String getHeaderString(int headerlength, ByteBuffer buffer) {
@@ -1100,7 +1100,7 @@ public class Auxiliary extends Base {
 	 * @return the column field
 	 * @throws IOException if the buffer is not readable
 	 */
-	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol) throws IOException {
+	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol, Charset charset) throws IOException {
 
 		byte[] header = new byte[headerlength];
 
@@ -1120,7 +1120,7 @@ public class Auxiliary extends Base {
 		}
 		// System.out.println("getColumns():: + Header: " + sheader);
 
-		return get(header);
+		return get(header, charset);
 	}
 
 	/**
@@ -1130,7 +1130,7 @@ public class Auxiliary extends Base {
 	 * @param header
 	 * @return
 	 */
-	private static SqliteElement[] get(byte[] header) {
+	private static SqliteElement[] get(byte[] header, Charset charset) {
 		// there are several varint values in the serialtypes header
 		int[] columns = readVarInt(header);
 		if (null == columns)
@@ -1142,34 +1142,34 @@ public class Auxiliary extends Base {
 
 			switch (columns[i]) {
 			case 0: // primary key or null value <empty> cell
-				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY, StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY, StorageClasses.INT, 0, charset);
 				break;
 			case 1: // 8bit complement integer
-				column[i] = new SqliteElement(SerialTypes.INT8, StorageClasses.INT, 1);
+				column[i] = new SqliteElement(SerialTypes.INT8, StorageClasses.INT, 1, charset);
 				break;
 			case 2: // 16bit integer
-				column[i] = new SqliteElement(SerialTypes.INT16, StorageClasses.INT, 2);
+				column[i] = new SqliteElement(SerialTypes.INT16, StorageClasses.INT, 2, charset);
 				break;
 			case 3: // 24bit integer
-				column[i] = new SqliteElement(SerialTypes.INT24, StorageClasses.INT, 3);
+				column[i] = new SqliteElement(SerialTypes.INT24, StorageClasses.INT, 3, charset);
 				break;
 			case 4: // 32bit integer
-				column[i] = new SqliteElement(SerialTypes.INT32, StorageClasses.INT, 4);
+				column[i] = new SqliteElement(SerialTypes.INT32, StorageClasses.INT, 4, charset);
 				break;
 			case 5: // 48bit integer
-				column[i] = new SqliteElement(SerialTypes.INT48, StorageClasses.INT, 6);
+				column[i] = new SqliteElement(SerialTypes.INT48, StorageClasses.INT, 6, charset);
 				break;
 			case 6: // 64bit integer
-				column[i] = new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8);
+				column[i] = new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8, charset);
 				break;
 			case 7: // Big-endian floating point number
-				column[i] = new SqliteElement(SerialTypes.FLOAT64, StorageClasses.FLOAT, 8);
+				column[i] = new SqliteElement(SerialTypes.FLOAT64, StorageClasses.FLOAT, 8, charset);
 				break;
 			case 8: // Integer constant 0
-				column[i] = new SqliteElement(SerialTypes.INT0, StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.INT0, StorageClasses.INT, 0, charset);
 				break;
 			case 9: // Integer constant 1
-				column[i] = new SqliteElement(SerialTypes.INT1, StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.INT1, StorageClasses.INT, 0, charset);
 				break;
 			case 10: // not used ;
 				columns[i] = 0;
@@ -1181,12 +1181,12 @@ public class Auxiliary extends Base {
 				if (columns[i] % 2 == 0) // even
 				{
 					// BLOB with the length (N-12)/2
-					column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, (columns[i] - 12) / 2);
+					column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, (columns[i] - 12) / 2, charset);
 				} 
 				else // odd
 				{
 					// String in database encoding (N-13)/2
-					column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, (columns[i] - 13) / 2);
+					column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, (columns[i] - 13) / 2, charset);
 				}
 
 			}
@@ -1247,7 +1247,7 @@ public class Auxiliary extends Base {
 	 */
 	public static int readUnsignedVarInt(ByteBuffer buffer) throws IOException {
 
-        byte b = buffer.get();    
+	    byte b = buffer.get();
         int value = b & 0x7F;
         while ((b & 0x80) != 0) {
             b = buffer.get();

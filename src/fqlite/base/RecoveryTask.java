@@ -27,7 +27,7 @@ public class RecoveryTask extends Base implements Runnable {
 	public long offset;
 	public ByteBuffer buffer;
 	public BitSet visit;
-	public static List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
+	private List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
 	public int pagenumber;
     private Job job;
 	private Auxiliary ct;
@@ -46,7 +46,7 @@ public class RecoveryTask extends Base implements Runnable {
 	 * 
 	 * @throws IOException if an I/O error occurs.
 	 */
-	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList) throws IOException {
+	public RecoveryTask(Auxiliary ct, Job job, long offset, int pagenumber, int pagesize, boolean freeList, List<TableDescriptor> tables) throws IOException {
 		
 		
 		if (job.file.size() < offset)
@@ -58,7 +58,8 @@ public class RecoveryTask extends Base implements Runnable {
 		this.pagenumber = pagenumber;
 		this.ct = ct;
 		this.freeList = freeList;
-		visit = new BitSet(pagesize);
+		this.tables = tables;
+		this.visit = new BitSet(pagesize);
 	}
 
 	/**
@@ -223,7 +224,7 @@ public class RecoveryTask extends Base implements Runnable {
 					
 				SqliteRow row;
 				
-				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
+				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1, job.db_encoding);
 								
 				// add new line to output
 				if (null != row) {
@@ -271,7 +272,7 @@ public class RecoveryTask extends Base implements Runnable {
     					
                             	// The first column is always a 64-bit signed integer primary key.
                             	long primarykey = bf.getLong();
-                                vrow.append(new SqliteElementData(primarykey));
+                                vrow.append(new SqliteElementData(primarykey, job.db_encoding));
                             	
                             	//Each R*Tree indices is a virtual component with an odd number of columns between 3 and 11
                             	//The other columns are pairs, one pair per dimension, containing the minimum and maximum values for that dimension, respectively.
@@ -280,7 +281,7 @@ public class RecoveryTask extends Base implements Runnable {
                             	while (number > 0)
                             	{	
 	                            	float rv = bf.getFloat();
-	                                vrow.append(new SqliteElementData(rv));
+	                                vrow.append(new SqliteElementData(rv, job.db_encoding));
 	                            	number--;
                             	}
 
@@ -370,7 +371,7 @@ public class RecoveryTask extends Base implements Runnable {
 				
 				/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 				/* We should read until the end of the unallocated area and not above! */
-				row = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
+				row = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1, job.db_encoding);
 				
 				// add new line to output
 				if (null != row) { // && rc.length() > 0) {

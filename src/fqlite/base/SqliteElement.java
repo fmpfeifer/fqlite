@@ -2,6 +2,7 @@ package fqlite.base;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import fqlite.types.SerialTypes;
@@ -20,11 +21,13 @@ public class SqliteElement {
 	public SerialTypes type;
 	public StorageClasses serial;
 	public int length;
+	public Charset charset;
 
-	public SqliteElement(SerialTypes type, StorageClasses serial, int length) {
+	public SqliteElement(SerialTypes type, StorageClasses serial, int length, Charset charset) {
 		this.length = length;
 		this.type = type;
 		this.serial = serial;
+		this.charset = charset;
 	}
 
 	public final String toString(byte[] value) {
@@ -39,7 +42,7 @@ public class SqliteElement {
 	        case INT1:
 	            return "1";
 	        case STRING:
-	            return decodeString(value).toString();
+	            return decodeString(value, charset).toString();
 	        case INT8:
 	            return String.valueOf(decodeInt8(value[0]));
 	        case INT16:
@@ -147,8 +150,8 @@ public class SqliteElement {
 		return bf.getDouble();
 	}
 
-	final static CharBuffer decodeString(byte[] v) {
-		return Job.db_encoding.decode(ByteBuffer.wrap(v));
+	final static CharBuffer decodeString(byte[] v, Charset charset) {
+		return charset.decode(ByteBuffer.wrap(v));
 	}
 
 	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();

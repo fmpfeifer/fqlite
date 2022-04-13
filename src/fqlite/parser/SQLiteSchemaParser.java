@@ -63,7 +63,7 @@ Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  */
 public class SQLiteSchemaParser {
 
-	public static ArrayList<Integer> roots = new ArrayList<Integer>();
+	public ArrayList<Integer> roots = new ArrayList<Integer>();
 
 	/**
 	 * 
@@ -72,7 +72,7 @@ public class SQLiteSchemaParser {
 	 * @param root the root
 	 * @param sql the sql-statement
 	 */
-	public static void parse(Job job, String tablename, int root, String sql) {
+	public void parse(Job job, String tablename, int root, String sql) {
 
 		boolean rowid = true;
 		

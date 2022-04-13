@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import fqlite.descriptor.AbstractDescriptor;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
+import fqlite.parser.SQLiteSchemaParser;
 import fqlite.util.Auxiliary;
 import fqlite.util.ByteSeqSearcher;
 import fqlite.util.Logger;
@@ -140,7 +141,7 @@ public class Job extends Base {
 	public RandomAccessFileReader file;
 	
 	/* this field represent the database encoding */
-	public static Charset db_encoding = StandardCharsets.UTF_8;
+	public Charset db_encoding = StandardCharsets.UTF_8;
 	
 	/* this is a multi-threaded program -> all data are saved to the list first*/
 	private Queue<SqliteRow> ll = new ConcurrentLinkedQueue<>();
@@ -209,6 +210,8 @@ public class Job extends Base {
 
 	public boolean recoverOnlyDeletedRecords = false;
 
+	public SQLiteSchemaParser schemaParser = new SQLiteSchemaParser();
+
 	  
 	/******************************************************************************************************/
 	
@@ -255,6 +258,7 @@ public class Job extends Base {
 	public int processDB() throws InterruptedException, ExecutionException, IOException {
 
 		allreadyvisit = ConcurrentHashMap.newKeySet();
+		List<TableDescriptor> recoveryTables = new LinkedList<>();
 
 		try {
 
@@ -871,7 +875,7 @@ public class Job extends Base {
 					continue;
 
 				/* transfer component information for later recovery */
-				RecoveryTask.tables.add(td);
+				recoveryTables.add(td);
 
 				/* explore a component trees and build up page info */
 				exploreBTree(r, td);
@@ -1023,7 +1027,7 @@ public class Job extends Base {
 						// if (offset Job.size)
 						// continue;
 
-						RecoveryTask task = new RecoveryTask(new Auxiliary(this), this, offset, n, ps, true);
+						RecoveryTask task = new RecoveryTask(new Auxiliary(this), this, offset, n, ps, true, recoveryTables);
 						/* add new task to executor queue */
 						runningTasks.incrementAndGet();
 						executor.execute(task);
@@ -1062,7 +1066,7 @@ public class Job extends Base {
 			// start carving
 
 			// full db-scan (including all database pages)
-			scan(numberofpages, ps);
+			scan(numberofpages, ps, recoveryTables);
 
 			/*******************************************************************/
 			linesReady();
@@ -1218,7 +1222,7 @@ public class Job extends Base {
 	 * 
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	public void scan(int number, int ps) throws IOException {
+	private void scan(int number, int ps, List<TableDescriptor> recoveryTables) throws IOException {
 		info("Start with scan...");
 		/* create a new threadpool to analyze the freepages */
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Global.numberofThreads);
@@ -1249,7 +1253,7 @@ public class Job extends Base {
 
 				//System.out.println("************************ pagenumber " + cc + " " + offset);
 
-				RecoveryTask task = new RecoveryTask(worker[cc % Global.numberofThreads].util,this, offset, cc, ps, false);
+				RecoveryTask task = new RecoveryTask(worker[cc % Global.numberofThreads].util,this, offset, cc, ps, false, recoveryTables);
 				worker[cc % Global.numberofThreads].addTask(task);
 				runningTasks.incrementAndGet();
 			}

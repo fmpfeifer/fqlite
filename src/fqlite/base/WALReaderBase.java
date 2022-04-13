@@ -106,7 +106,7 @@ public abstract class WALReaderBase extends Base {
 	/* buffer that holds the current page */
 	ByteBuffer buffer;
 
-	public static List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
+	public List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
@@ -543,7 +543,7 @@ public abstract class WALReaderBase extends Base {
 			
 
 			try { 
-				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24, job.db_encoding);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -598,7 +598,7 @@ public abstract class WALReaderBase extends Base {
 							// The first column is always a 64-bit signed integer primary key.
 							long primarykey = bf.getLong();
 							//vrow.append(primarykey + ";");
-							vrow.append(new SqliteElementData(primarykey));
+							vrow.append(new SqliteElementData(primarykey, job.db_encoding));
 
 							// Each R*Tree indices is a virtual component with an odd number of columns
 							// between 3 and 11
@@ -609,7 +609,7 @@ public abstract class WALReaderBase extends Base {
 							while (number > 0) {
 								float rv = bf.getFloat();
 								//vrow.append(rv + ";");
-								vrow.append(new SqliteElementData(rv));
+								vrow.append(new SqliteElementData(rv, job.db_encoding));
 								number--;
 							}
 
@@ -697,7 +697,7 @@ public abstract class WALReaderBase extends Base {
 			
 			/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 			/* We should read until the end of the unallocated area and not above! */
-			row = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
+			row = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1, job.db_encoding);
 			
 			// add new line to output
 			if (null != row) { // && rc.length() > 0) {

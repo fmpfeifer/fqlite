@@ -1,6 +1,8 @@
 package fqlite.base;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import fqlite.types.SerialTypes;
 import fqlite.types.StorageClasses;
@@ -8,23 +10,26 @@ import fqlite.types.StorageClasses;
 public class SqliteElementData {
     private SqliteElement column;
     private byte[] data;
+    private Charset charset = StandardCharsets.UTF_8;
     
     public SqliteElementData(SqliteElement column, byte[] data) {
         this.column = column;
         this.data = data;
+        this.charset = column.charset;
     }
     
-    public SqliteElementData(String data) {
+    public SqliteElementData(String data, Charset charset) {
         this.column = null;
         if (null == data) {
             this.data = null;
         } else {
             this.data = data.getBytes();
         }
+        this.charset = charset;
     }
     
-    public SqliteElementData(long data) {
-        this(new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8), data);
+    public SqliteElementData(long data, Charset charset) {
+        this(new SqliteElement(SerialTypes.INT64, StorageClasses.INT, 8, charset), data);
     }
     
     public SqliteElementData(SqliteElement column, long data) {
@@ -32,13 +37,15 @@ public class SqliteElementData {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(data);
         this.data = buffer.array();
+        this.charset = column.charset;
     }
     
-    public SqliteElementData(double data) {
-        this.column = new SqliteElement(SerialTypes.FLOAT64, StorageClasses.FLOAT, 8);
+    public SqliteElementData(double data, Charset charset) {
+        this.column = new SqliteElement(SerialTypes.FLOAT64, StorageClasses.FLOAT, 8, charset);
         ByteBuffer buffer = ByteBuffer.allocate(Double.BYTES);
         buffer.putDouble(data);
         this.data = buffer.array();
+        this.charset = charset;
     }
     
     public String toString() {
@@ -46,7 +53,7 @@ public class SqliteElementData {
             if (null == data) {
                 return "NULL";
             }
-            return SqliteElement.decodeString(data).toString();
+            return SqliteElement.decodeString(data, charset).toString();
         }
         return column.toString(data);
     }
@@ -77,7 +84,7 @@ public class SqliteElementData {
     public String getTextValue() {
         switch (column.type) {
             case STRING:
-                return SqliteElement.decodeString(data).toString();
+                return SqliteElement.decodeString(data, charset).toString();
             default:
         }
         return null;

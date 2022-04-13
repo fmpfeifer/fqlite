@@ -74,7 +74,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/* buffer that holds the current page */
 	protected ByteBuffer buffer;
 
-	public static List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
+	public List<TableDescriptor> tables = new LinkedList<TableDescriptor>();
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
@@ -384,7 +384,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			SqliteRow row = null;
 
 			try {
-				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4, job.db_encoding);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -434,7 +434,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 							// The first column is always a 64-bit signed integer primary key.
 							long primarykey = bf.getLong();
 							//vrow.append(primarykey + ";");
-							vrow.append(new SqliteElementData(primarykey));
+							vrow.append(new SqliteElementData(primarykey, job.db_encoding));
 
 							// Each R*Tree indices is a virtual component with an odd number of columns
 							// between 3 and 11
@@ -445,7 +445,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 							while (number > 0) {
 								float rv = bf.getFloat();
 								//vrow.append(rv + ";");
-								vrow.append(new SqliteElementData(rv));
+								vrow.append(new SqliteElementData(rv, job.db_encoding));
 								number--;
 							}
 

@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import fqlite.parser.SQLiteSchemaParser;
 import fqlite.types.SerialTypes;
 import fqlite.types.StorageClasses;
 import fqlite.util.Auxiliary;
@@ -208,7 +207,7 @@ public class PageReader extends Base {
 			
 		}	
 		//finally, we have all information in place to parse the CREATE statement
-		SQLiteSchemaParser.parse(job,tablename, rootpage, statement);
+		job.schemaParser.parse(job,tablename, rootpage, statement);
 
 	}
 
@@ -774,34 +773,34 @@ public class PageReader extends Base {
 
 			switch (columns[i]) {
 			case 0: // primary key or null value <empty> cell
-				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY,StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY,StorageClasses.INT, 0, job.db_encoding);
 				break;
 			case 1: // 8bit complement integer
-				column[i] = new SqliteElement(SerialTypes.INT8,StorageClasses.INT, 1);
+				column[i] = new SqliteElement(SerialTypes.INT8,StorageClasses.INT, 1, job.db_encoding);
 				break;
 			case 2: // 16bit integer
-				column[i] = new SqliteElement(SerialTypes.INT16,StorageClasses.INT, 2);
+				column[i] = new SqliteElement(SerialTypes.INT16,StorageClasses.INT, 2, job.db_encoding);
 				break;
 			case 3: // 24bit integer
-				column[i] = new SqliteElement(SerialTypes.INT24,StorageClasses.INT, 3);
+				column[i] = new SqliteElement(SerialTypes.INT24,StorageClasses.INT, 3, job.db_encoding);
 				break;
 			case 4: // 32bit integer
-				column[i] = new SqliteElement(SerialTypes.INT32,StorageClasses.INT, 4);
+				column[i] = new SqliteElement(SerialTypes.INT32,StorageClasses.INT, 4, job.db_encoding);
 				break;
 			case 5: // 48bit integer
-				column[i] = new SqliteElement(SerialTypes.INT48,StorageClasses.INT, 6);
+				column[i] = new SqliteElement(SerialTypes.INT48,StorageClasses.INT, 6, job.db_encoding);
 				break;
 			case 6: // 64bit integer
-				column[i] = new SqliteElement(SerialTypes.INT64,StorageClasses.INT, 8);
+				column[i] = new SqliteElement(SerialTypes.INT64,StorageClasses.INT, 8, job.db_encoding);
 				break;
 			case 7: // Big-endian floating point number
-				column[i] = new SqliteElement(SerialTypes.FLOAT64,StorageClasses.FLOAT, 8);
+				column[i] = new SqliteElement(SerialTypes.FLOAT64,StorageClasses.FLOAT, 8, job.db_encoding);
 				break;
 			case 8: // Integer constant 0
-				column[i] = new SqliteElement(SerialTypes.INT0,StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.INT0,StorageClasses.INT, 0, job.db_encoding);
 				break;
 			case 9: // Integer constant 1
-				column[i] = new SqliteElement(SerialTypes.INT1,StorageClasses.INT, 0);
+				column[i] = new SqliteElement(SerialTypes.INT1,StorageClasses.INT, 0, job.db_encoding);
 				break;
 			case 10: // not used ;
 
@@ -812,12 +811,12 @@ public class PageReader extends Base {
 				if (columns[i] % 2 == 0) // even
 				{
 					// BLOB with the length (N-12)/2
-					column[i] = new SqliteElement(SerialTypes.BLOB,StorageClasses.BLOB, (columns[i] - 12) / 2);
+					column[i] = new SqliteElement(SerialTypes.BLOB,StorageClasses.BLOB, (columns[i] - 12) / 2, job.db_encoding);
 				} 
 				else // odd
 				{
 					// String in database encoding (N-13)/2
-					column[i] = new SqliteElement(SerialTypes.STRING,StorageClasses.TEXT, (columns[i] - 13) / 2);
+					column[i] = new SqliteElement(SerialTypes.STRING,StorageClasses.TEXT, (columns[i] - 13) / 2, job.db_encoding);
 				}
 
 			}
