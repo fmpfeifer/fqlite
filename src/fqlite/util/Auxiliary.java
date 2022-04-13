@@ -664,12 +664,25 @@ public class Auxiliary extends Base {
 
 			buffer.position(last);
 			/* copy spilled overflow of current page into extended buffer */
-			System.arraycopy(originalbuffer, buffer.position(), c, 0, so + 7 ); // - phl
+			
+			// original code was:
+			// System.arraycopy(originalbuffer, buffer.position(), c, 0, so + 7 ); // - phl
+			// I'm getting ArrayIndexOutOfBoundsException
+			// So try to limit the amount to copy to the available data and target capacity
+			int lenToCopy = so + 7;
+			if (lenToCopy > c.length) {
+			    lenToCopy = c.length;
+			}
+			if (lenToCopy > originalbuffer.length - buffer.position()) {
+			    lenToCopy = originalbuffer.length - buffer.position();
+			}
+			System.arraycopy(originalbuffer, buffer.position(), c, 0, lenToCopy ); // - phl
+			
 			/* append the rest startRegion the overflow pages to the buffer */
 			try {
 				if (null != extended) {
 				    // copy every byte from extended (beginning with index 0) into byte-array c, at position so-phl
-                    System.arraycopy(extended, 0, c, so - phl -1, pll - so);
+                    System.arraycopy(extended, 0, c, so - phl - 1, pll - so);
 				}
 			} catch (ArrayIndexOutOfBoundsException err) {
 				err("Error IndexOutOfBounds");
@@ -1459,27 +1472,28 @@ public class Auxiliary extends Base {
         LinkedList<Integer> res = new LinkedList<Integer>();
 
 
-        do
-        {
+        while (in.position() < in.limit()) {
             byte b = in.get();            
             int value = b & 0x7F;
             while ((b & 0x80) != 0) {
+                if (in.position() >= in.limit()) {
+                    return null;
+                }
                 b = in.get();
                 value <<= 7;
                 value |= (b & 0x7F);
             }
 
             res.add(value);
-
-        } while(in.position()<in.limit());
+        } 
 
         int[] result = new int[res.size()];
         int n = 0;
-        Iterator<Integer> it = res.iterator();
-        while (it.hasNext()) {
-            result[n] = it.next();
-            n++;
+                
+        for (int val : res) {
+            result[n++] = val;
         }
+        
         return result;
     }
 
