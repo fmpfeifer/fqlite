@@ -119,33 +119,38 @@ public class SerialTypeMatcher {
 
 		/* check pattern constrain by constrain */
   
-		
-		while (i < pattern.size()) {
-			/* do not read out of bounds - stop before the end */
-			if (buffer.position() < (endRegion - 4)) {
-				/* remember the begin of a possible match */
-				int current = buffer.position();
-				if (i == idx)
-					pos = current;
-				/* read next value */
-				int value = readUnsignedVarInt();
-				// no varint OR costrain does not match -> skip this an go on with the next
-				// bytes
-				if (value == -1 || !pattern.get(i).match(value)) {
-					current++;
-					buffer.position(current);
-					/* and again, startRegion the beginning but with the next byte */
-					i = idx;
-					/* skip pattern matching step and try again */
-					continue;
-				}
-
-				/* go ahead with next constrain */
-				i++;
-
-			} else
-				return false; /* no match could be found */
-
+		if (i < pattern.size()) {
+    		while (i < pattern.size()) {
+    			/* do not read out of bounds - stop before the end */
+    			if (buffer.position() < (endRegion - 4)) {
+    				/* remember the begin of a possible match */
+    				int current = buffer.position();
+    				if (i == idx)
+    					pos = current;
+    				/* read next value */
+    				int value = readUnsignedVarInt();
+    				// no varint OR costrain does not match -> skip this an go on with the next
+    				// bytes
+    				if (value == -1 || !pattern.get(i).match(value)) {
+    					current++;
+    					buffer.position(current);
+    					/* and again, startRegion the beginning but with the next byte */
+    					i = idx;
+    					/* skip pattern matching step and try again */
+    					continue;
+    				}
+    
+    				/* go ahead with next constrain */
+    				i++;
+    
+    			} else
+    				return false; /* no match could be found */
+    
+    		}
+		} else {
+		    // move position forward, as start index is bigger than pattern size
+		    pos = buffer.position() + 1;
+		    return false;
 		}
 
 		start = pos;
