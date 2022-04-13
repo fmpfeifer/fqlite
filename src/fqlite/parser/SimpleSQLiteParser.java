@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -58,7 +59,6 @@ public class SimpleSQLiteParser extends Base {
 	
 	
 	SQLiteLexer lexer;
-	SQLiteLexer parser;
 	String tablename = null;
 	String modulname = null;
 	
@@ -153,8 +153,10 @@ public class SimpleSQLiteParser extends Base {
 		modulname = null;
 		
 		// Create a lexer and parser for the input.
-     	SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
+        parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
 
     
         // Invoke the `create_table_stmt` production.
@@ -228,8 +230,10 @@ public class SimpleSQLiteParser extends Base {
 	{
 		column = 0;
 	    // Create a lexer and parser for the input.
-     	SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
+        parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
 
     
         // Invoke the `create_index_stmt` production.
@@ -297,8 +301,10 @@ public class SimpleSQLiteParser extends Base {
 		column = 0;
 		
 	    // Create a lexer and parser for the input.
-      	SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
+        parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
 
     
         // Invoke the `create_table_stmt` production.
