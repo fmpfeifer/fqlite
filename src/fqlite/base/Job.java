@@ -1451,9 +1451,14 @@ public class Job extends Base {
 		{
 			return;
 		}
-		
-		
-		
+
+
+
+
+		if (offset >= file.size() - 1) {
+		    return;
+		}
+
 		// first two bytes of page
 		file.position(offset);
 		byte pageType = file.get();
