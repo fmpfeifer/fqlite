@@ -43,6 +43,7 @@ public class RecoveryTask extends Base implements Runnable {
 	 * @param pagenumber the page number
 	 * @param pagesize the page size
 	 * @param freeList if it is a free list
+	 * @param tables tables recovered in job
 	 * 
 	 * @throws IOException if an I/O error occurs.
 	 */
