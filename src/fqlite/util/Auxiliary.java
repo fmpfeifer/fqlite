@@ -455,6 +455,7 @@ public class Auxiliary extends Base {
 	 * @param firstcol the buffer to be written to
 	 * @param withoutROWID if there is no RowID
 	 * @param filepointer the file pointer
+	 * @param charset Charset used in database
 	 * @return the row
 	 * @throws IOException if an error occurs
 	 * 
@@ -1079,6 +1080,7 @@ public class Auxiliary extends Base {
 	/**
 	 * 
 	 * @param header string with the header
+	 * @param charset Charset used in database
 	 * @return the columns
 	 */
 	public static SqliteElement[] toColumns(String header, Charset charset) {
@@ -1111,6 +1113,7 @@ public class Auxiliary extends Base {
 	 * @param buffer       the headerbytes
 	 * @param firstcol the buffer to be filled with the first column
 	 * @return the column field
+	 * @param charset Charset used in database
 	 * @throws IOException if the buffer is not readable
 	 */
 	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol, Charset charset) throws IOException {

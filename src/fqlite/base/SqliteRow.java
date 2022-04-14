@@ -89,6 +89,9 @@ public class SqliteRow {
     }
 
     public long getIntValue(String col) {
+        if (colIdx == null || !colIdx.containsKey(col)) {
+            return Long.MIN_VALUE;
+        }
         int idx = colIdx.get(col);
         if (idx >= rowData.size()) {
             return -1;
@@ -97,6 +100,9 @@ public class SqliteRow {
     }
 
     public String getTextValue(String col) {
+        if (colIdx == null || !colIdx.containsKey(col)) {
+            return null;
+        }
         int idx = colIdx.get(col);
         if (idx >= rowData.size()) {
             return null;
@@ -105,6 +111,9 @@ public class SqliteRow {
     }
 
     public double getFloatValue(String col) {
+        if (colIdx == null || !colIdx.containsKey(col)) {
+            return Double.NaN;
+        }
         int idx = colIdx.get(col);
         if (idx >= rowData.size()) {
             return Double.NaN;
@@ -113,6 +122,9 @@ public class SqliteRow {
     }
 
     public byte[] getBlobValue(String col) {
+        if (colIdx == null || !colIdx.containsKey(col)) {
+            return null;
+        }
         int idx = colIdx.get(col);
         if (idx >= rowData.size()) {
             return null;
