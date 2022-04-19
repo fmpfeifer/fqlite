@@ -6,8 +6,6 @@ import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import fqlite.parser.SQLiteSchemaParser;
-import fqlite.types.SerialTypes;
-import fqlite.types.StorageClasses;
 import fqlite.util.Auxiliary;
 import fqlite.util.CarvingResult;
 /**
@@ -742,7 +740,7 @@ public class PageReader extends Base {
 	public SqliteElement[] toColumns(String header) {
 		/* hex-String representation to byte array */
 		byte[] bcol = Auxiliary.decode(header);
-		return get(bcol);
+		return Auxiliary.get(bcol);
 	}
 
 	/**
@@ -770,80 +768,8 @@ public class PageReader extends Base {
 		
 		debug("Header: " + Auxiliary.bytesToHex(header));
 		
-		return get(header);
+		return Auxiliary.get(header);
 	}
-
-	/**
-	 * Converts the header bytes of a record into a field of SQLite elements.
-	 * Exactly one element is created per column type. 
-	 * @param header
-	 * @return
-	 */
-	private SqliteElement[] get(byte[] header) {
-		// there are several varint values in the serialtypes header
-		int[] columns = Auxiliary.readVarInt(header);
-		if (null == columns)
-			return null;
-
-		SqliteElement[] column = new SqliteElement[columns.length];
-
-		for (int i = 0; i < columns.length; i++) {
-
-			switch (columns[i]) {
-			case 0: // primary key or null value <empty> cell
-				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY,StorageClasses.INT, 0);
-				break;
-			case 1: // 8bit complement integer
-				column[i] = new SqliteElement(SerialTypes.INT8,StorageClasses.INT, 1);
-				break;
-			case 2: // 16bit integer
-				column[i] = new SqliteElement(SerialTypes.INT16,StorageClasses.INT, 2);
-				break;
-			case 3: // 24bit integer
-				column[i] = new SqliteElement(SerialTypes.INT24,StorageClasses.INT, 3);
-				break;
-			case 4: // 32bit integer
-				column[i] = new SqliteElement(SerialTypes.INT32,StorageClasses.INT, 4);
-				break;
-			case 5: // 48bit integer
-				column[i] = new SqliteElement(SerialTypes.INT48,StorageClasses.INT, 6);
-				break;
-			case 6: // 64bit integer
-				column[i] = new SqliteElement(SerialTypes.INT64,StorageClasses.INT, 8);
-				break;
-			case 7: // Big-endian floating point number
-				column[i] = new SqliteElement(SerialTypes.FLOAT64,StorageClasses.FLOAT, 8);
-				break;
-			case 8: // Integer constant 0
-				column[i] = new SqliteElement(SerialTypes.INT0,StorageClasses.INT, 0);
-				break;
-			case 9: // Integer constant 1
-				column[i] = new SqliteElement(SerialTypes.INT1,StorageClasses.INT, 0);
-				break;
-			case 10: // not used ;
-
-			case 11:
-				columns[i] = 0;
-				break;
-			default:
-				if (columns[i] % 2 == 0) // even
-				{
-					// BLOB with the length (N-12)/2
-					column[i] = new SqliteElement(SerialTypes.BLOB,StorageClasses.BLOB, (columns[i] - 12) / 2);
-				} 
-				else // odd
-				{
-					// String in database encoding (N-13)/2
-					column[i] = new SqliteElement(SerialTypes.STRING,StorageClasses.TEXT, (columns[i] - 13) / 2);					
-				}
-
-			}
-
-		}
-
-		return column;
-	}
-
 	
 
 	/**

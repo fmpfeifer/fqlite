@@ -1133,7 +1133,7 @@ public class Auxiliary extends Base {
 	 * @param header
 	 * @return
 	 */
-	private static SqliteElement[] get(byte[] header) {
+	public static SqliteElement[] get(byte[] header) {
 		// there are several varint values in the serialtypes header
 		int[] columns = readVarInt(header);
 		if (null == columns)
