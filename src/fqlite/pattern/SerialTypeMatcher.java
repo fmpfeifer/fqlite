@@ -119,6 +119,11 @@ public class SerialTypeMatcher {
 
 		/* check pattern constrain by constrain */
   
+		if (i >= pattern.size()) {
+		    // move position forward, as start index is bigger than pattern size
+		    pos = buffer.position() + 1;
+		    return false;
+		}
 		
 		while (i < pattern.size()) {
 			/* do not read out of bounds - stop before the end */
