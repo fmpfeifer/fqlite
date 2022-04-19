@@ -116,7 +116,7 @@ public class Carver extends Base {
 			
 			boolean missing = false;
 			if (headertype == CarverTypes.NORMAL) {
-			    if (firstcol.length() >= 4) {
+			    if (firstcol.length() >= 4 && m.length() >= 4) {
 			        firstcol.insert(0,m.substring(2, 4));
 			    } else {
 			        missing = true;
@@ -124,7 +124,7 @@ public class Carver extends Base {
 				//System.out.println(" Adding knownfirstcolumntypes " + m.substring(2, 4));
 			}
 
-			if (headertype == CarverTypes.COLUMNSONLY) {
+			if (headertype == CarverTypes.COLUMNSONLY && m.length() >= 2) {
 				firstcol.insert(0,m.substring(0, 2));
 				//System.out.println(" Adding knownfirstcolumntypes " + m.substring(0, 2));
 
