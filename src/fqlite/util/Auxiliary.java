@@ -1184,12 +1184,18 @@ public class Auxiliary extends Base {
 				if (columns[i] % 2 == 0) // even
 				{
 					// BLOB with the length (N-12)/2
-					column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, (columns[i] - 12) / 2);
+				    int len = (columns[i] - 12) / 2;
+                    if (len >= 0) {
+                        column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, len);
+                    }
 				} 
 				else // odd
 				{
 					// String in database encoding (N-13)/2
-					column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, (columns[i] - 13) / 2);
+				    int len = (columns[i] - 13) / 2;
+                    if (len >= 0 ) {
+                        column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, len);
+                    }
 				}
 
 			}
