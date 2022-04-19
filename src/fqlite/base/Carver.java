@@ -116,20 +116,28 @@ public class Carver extends Base {
 			debug("Match: " + m + " on pos:" + ((pagenumber - 1) * job.ps + from));
 			
 			
-	
+			boolean missing = false;
 			if (headertype == CarverTypes.NORMAL) {
-				firstcol.insert(0,m.substring(2, 4));
+			    if (m.length() >= 4 ) {
+			        firstcol.insert(0,m.substring(2, 4));
+			    } else { 
+			        missing = true;
+			    }
 				//System.out.println(" Adding knownfirstcolumntypes " + m.substring(2, 4));
 			}
 
 			if (headertype == CarverTypes.COLUMNSONLY) {
-				firstcol.insert(0,m.substring(0, 2));
-				//System.out.println(" Adding knownfirstcolumntypes " + m.substring(0, 2));
-
-				m = addHeaderByte(m);
+			    if (m.length() >= 2) {
+			        firstcol.insert(0,m.substring(0, 2));
+			        // System.out.println(" Adding knownfirstcolumntypes " + m.substring(0, 2));
+	                m = addHeaderByte(m);
+			    } else {
+			        missing = true;
+			    }
+				
 			}
 
-			if (headertype == CarverTypes.FIRSTCOLUMNMISSING) {
+			if (headertype == CarverTypes.FIRSTCOLUMNMISSING || missing) {
 				
 				/* check first column  - if it is set to type <00> we can leave the value as it is*/
 				if (null != firstcol && firstcol.length()>2 && !firstcol.subSequence(0,2).equals("00")) {
