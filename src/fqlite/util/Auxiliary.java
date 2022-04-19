@@ -1143,10 +1143,11 @@ public class Auxiliary extends Base {
 	 * Converts the header bytes of a record into a field of SQLite elements.
 	 * Exactly one element is created per column type.
 	 * 
-	 * @param header
-	 * @return
+	 * @param header Header bytes to read from
+	 * @param charset Charset to be used in decoding
+	 * @return SqliteElements converted
 	 */
-	private static SqliteElement[] get(byte[] header, Charset charset) {
+	public static SqliteElement[] get(byte[] header, Charset charset) {
 		// there are several varint values in the serialtypes header
 		int[] columns = readVarInt(header);
 		if (null == columns)
@@ -1197,12 +1198,18 @@ public class Auxiliary extends Base {
 				if (columns[i] % 2 == 0) // even
 				{
 					// BLOB with the length (N-12)/2
-					column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, (columns[i] - 12) / 2, charset);
+				    int len = (columns[i] - 12) / 2;
+				    if (len >= 0) {
+				        column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, len, charset);
+				    }
 				} 
 				else // odd
 				{
 					// String in database encoding (N-13)/2
-					column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, (columns[i] - 13) / 2, charset);
+				    int len = (columns[i] - 13) / 2;
+				    if (len >= 0 ) {
+				        column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, len, charset);
+				    }
 				}
 
 			}
