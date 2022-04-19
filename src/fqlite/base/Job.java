@@ -2017,6 +2017,10 @@ public class Job extends Base {
 			return;
 		}
 		
+		if (offset >= file.size() - 1) {
+		    return;
+		}
+		
 		
 		ByteBuffer pageType = ByteBuffer.allocate(1);
 		// first two bytes of page
