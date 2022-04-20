@@ -21,7 +21,7 @@ import fqlite.util.Logger;
  * @author pawlaszc
  *
  */
-public class RecoveryTask extends Base implements Runnable {
+public class RecoveryTask extends Base {
 
 	public int pagesize;
 	public long offset;
@@ -68,7 +68,7 @@ public class RecoveryTask extends Base implements Runnable {
 	 * 
 	 * @return 0 if successful, -1 otherwise.
 	 */
-	public int recover() {
+	public int recover() throws IOException {
 
 		boolean withoutROWID = false;
 		
@@ -399,9 +399,8 @@ public class RecoveryTask extends Base implements Runnable {
 			/* now we are ready to carve the rest of the page */
 			carve(content,null);
 			
-		} catch (Exception err) {
-			err.printStackTrace();
-			return -1;
+		} catch (IOException err) {
+			throw err;
 		}
 
 		return 0;
@@ -628,18 +627,13 @@ public class RecoveryTask extends Base implements Runnable {
 
 	}
 
-	@Override
-	public void run() {
+	public void run() throws IOException {
 		
 		try
 		{
 			recover();
 			/* if task has finished, decrement this counter to inform the main-thread */
 			//System.out.println("task finished" );
-		}
-		catch(Exception err)
-		{
-			System.err.println(err.toString());
 		}
 		finally
 		{

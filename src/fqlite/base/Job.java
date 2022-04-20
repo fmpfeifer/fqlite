@@ -955,7 +955,7 @@ public class Job extends Base {
 				// seeking file pointer to the first free page entry
 
 				/* create a new threadpool to analyze the freepages */
-				ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Global.numberofThreads);
+				// ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Global.numberofThreads);
 
 				/* a list can extend over several memory pages. */
 				boolean morelistpages = false;
@@ -1031,14 +1031,14 @@ public class Job extends Base {
 						RecoveryTask task = new RecoveryTask(new Auxiliary(this), this, offset, n, ps, true, recoveryTables);
 						/* add new task to executor queue */
 						runningTasks.incrementAndGet();
-						executor.execute(task);
-						// task.run();
+						//executor.execute(task);
+						task.run();
 					}
 					freepagesum += entries;
 
 				} while (morelistpages); // while
 
-				executor.shutdown();
+				//executor.shutdown();
 
 				info("Task total: " + runningTasks.intValue());
 

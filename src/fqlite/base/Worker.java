@@ -1,5 +1,7 @@
 package fqlite.base;
 
+import java.io.IOException;
+
 import fqlite.util.Auxiliary;
 import fqlite.util.WorkerQueue;
 
@@ -18,7 +20,7 @@ import fqlite.util.WorkerQueue;
 * @author Dirk Pawlaszczyk
 * @version 1.2
 */
-public class Worker implements Runnable {
+public class Worker {
 
 	WorkerQueue<RecoveryTask> toDo;
 	Auxiliary util;
@@ -49,8 +51,7 @@ public class Worker implements Runnable {
 	 * As long as there are unfinished tasks, the worker works through them.
 	 *  
 	 */
-	@Override
-	public void run() {
+	public void run() throws IOException {
 
 		//long start = System.currentTimeMillis();
 		/* go through the stack */
