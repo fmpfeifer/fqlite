@@ -40,6 +40,7 @@ import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.parser.SQLiteSchemaParser;
 import fqlite.util.Auxiliary;
+import fqlite.util.BufferUtil;
 import fqlite.util.ByteSeqSearcher;
 import fqlite.util.Logger;
 import fqlite.util.RandomAccessFileReader;
@@ -1184,7 +1185,7 @@ public class Job extends Base {
 			/* there are Null-Byte values left after conversion */
 			/* I don't know why ? */
 		
-			byte[] cs = new byte[n.length];
+			byte[] cs = BufferUtil.allocateByteBuffer(n.length);
 
 			int xx = 0;
 			for (byte e : n) {

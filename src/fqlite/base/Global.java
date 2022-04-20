@@ -13,4 +13,5 @@ public class Global {
     public static boolean CONVERT_DATETIME = true; // Weather to convert datetime or not
     public static int LOGLEVEL = Base.ERROR;
     public static int numberofThreads = 1;
+    public static final int MAX_BUFFER_SIZE = 64 * 4096;
 }

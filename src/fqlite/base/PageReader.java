@@ -6,6 +6,7 @@ import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import fqlite.util.Auxiliary;
+import fqlite.util.BufferUtil;
 import fqlite.util.CarvingResult;
 /**
  * This class provides different access methods to read the different cells records from a SQLite database.
@@ -130,12 +131,12 @@ public class PageReader extends Base {
 				 */
 				byte[] extended = readOverflow(overflow -1);
 
-				byte[] c = new byte[pll + job.ps];
+				byte[] c = BufferUtil.allocateByteBuffer(pll + job.ps);
 
 				buffer.position(0);
 				
 				/* method array() cannot be called, since we backed an array*/
-				byte [] originalbuffer = new byte[job.ps];
+				byte [] originalbuffer = BufferUtil.allocateByteBuffer(job.ps);
 				for (int bb = 0; bb < job.ps; bb++)
 				{
 				   originalbuffer[bb] = buffer.get(bb);	
@@ -174,9 +175,9 @@ public class PageReader extends Base {
 			byte[] value = null;
 			
 			if (con == 5)
-				value = new byte[en.length];
+				value = BufferUtil.allocateByteBuffer(en.length);
 			else
-				value = new byte[en.length];
+				value = BufferUtil.allocateByteBuffer(en.length);
 				
 			buffer.get(value);
 		
@@ -283,10 +284,10 @@ public class PageReader extends Base {
 				 */
 				byte[] extended = readOverflow(overflow - 1);
 
-				byte[] c = new byte[pll + job.ps];
+				byte[] c = BufferUtil.allocateByteBuffer(pll + job.ps);
 
 				buffer.position(0);
-				byte [] originalbuffer = new byte[job.ps];
+				byte [] originalbuffer = BufferUtil.allocateByteBuffer(job.ps);
 				for (int bb = 0; bb < job.ps; bb++)
 				{
 				   originalbuffer[bb] = buffer.get(bb);	
@@ -312,7 +313,7 @@ public class PageReader extends Base {
 					continue;
 				}
 
-				byte[] value = new byte[en.length];
+				byte[] value = BufferUtil.allocateByteBuffer(en.length);
 
 				bf.get(value);
 
@@ -333,7 +334,7 @@ public class PageReader extends Base {
 					continue;
 				}
 
-				byte[] value = new byte[en.length];
+				byte[] value = BufferUtil.allocateByteBuffer(en.length);
 				if ((buffer.position() + en.length) > buffer.limit()) {
 					error = true;
 					return null;
@@ -666,7 +667,7 @@ public class PageReader extends Base {
 		 * we always crab the complete overflow-page minus the first four bytes - they
 		 * are reserved for the (possible) next overflow page offset
 		 **/
-		byte[] current = new byte[job.ps - 4];
+		byte[] current = BufferUtil.allocateByteBuffer(job.ps - 4);
 		//System.out.println("current ::" + current.length);
 		//System.out.println("bytes:: " + (job.ps -4));
 		//System.out.println("overflowpage :: " + overflowpage.limit());
@@ -678,7 +679,7 @@ public class PageReader extends Base {
 		/* Do we have a predecessor page? */
 		if (null != part) {
 			/* merge the overflow pages together to one byte-array */
-			byte[] of = new byte[current.length + part.length];
+			byte[] of = BufferUtil.allocateByteBuffer(current.length + part.length);
 			System.arraycopy(current, 0, of, 0, current.length);
 			System.arraycopy(part, 0, of, current.length, part.length);
 			return of;
@@ -695,7 +696,7 @@ public class PageReader extends Base {
 	 */
 	public static byte[] decode(String s) {
 		int len = s.length();
-		byte[] r = new byte[len / 2];
+		byte[] r = BufferUtil.allocateByteBuffer(len / 2);
 		for (int i = 0; i < r.length; i++) {
 			int digit1 = s.charAt(i * 2), digit2 = s.charAt(i * 2 + 1);
 			if (digit1 >= '0' && digit1 <= '9')
@@ -736,7 +737,7 @@ public class PageReader extends Base {
 	 */
 	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer) throws IOException {
 
-		byte[] header = new byte[headerlength];
+		byte[] header = BufferUtil.allocateByteBuffer(headerlength);
 
 		try
 		{

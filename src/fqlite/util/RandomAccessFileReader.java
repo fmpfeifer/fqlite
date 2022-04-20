@@ -58,7 +58,7 @@ public class RandomAccessFileReader implements Closeable {
 
     public ByteBuffer allocateAndReadBuffer(int size) throws IOException {
         synchronized (lock) {
-            byte [] bytes = new byte[size];
+            byte [] bytes = BufferUtil.allocateByteBuffer(size);
             get(bytes);
             return ByteBuffer.wrap(bytes);
         }

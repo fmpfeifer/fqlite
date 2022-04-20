@@ -3,6 +3,7 @@ package fqlite.pattern;
 import java.nio.ByteBuffer;
 
 import fqlite.util.Auxiliary;
+import fqlite.util.BufferUtil;
 
 /**
  * An engine that performs match operations on a byte buffer sequence by
@@ -169,7 +170,7 @@ public class SerialTypeMatcher {
 	 * @return The (possibly empty) subsequence matched by the previous match
 	 */
 	public ByteBuffer group() {
-		byte[] match = new byte[(end) - start];
+		byte[] match = BufferUtil.allocateByteBuffer((end) - start);
 		buffer.position(start);
 		buffer.get(match, 0, (end - start));
 		return ByteBuffer.wrap(match);
@@ -186,7 +187,7 @@ public class SerialTypeMatcher {
 	public String substring(int start, int end) {
 		if (start > end)
 			return "";
-		byte[] match = new byte[(end) - start];
+		byte[] match = BufferUtil.allocateByteBuffer((end) - start);
 		buffer.position(start);
 		buffer.get(match, 0, (end - start));
 		return Auxiliary.bytesToHex(match);
