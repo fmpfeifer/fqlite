@@ -1,5 +1,6 @@
 package fqlite.base;
 
+import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,9 +95,13 @@ public class SqliteRow {
         }
         int idx = colIdx.get(col);
         if (idx >= rowData.size()) {
-            return -1;
+            return Long.MIN_VALUE;
         }
-        return rowData.get(idx).getIntValue();
+        try {
+            return rowData.get(idx).getIntValue();
+        } catch (BufferUnderflowException|ArrayIndexOutOfBoundsException e) {
+        }
+        return Long.MIN_VALUE;
     }
 
     public String getTextValue(String col) {
