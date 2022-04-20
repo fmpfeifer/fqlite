@@ -572,7 +572,7 @@ public class Auxiliary extends Base {
 		// Attention: this takes most of the time during a run
 		SqliteElement[] columns;
 
-		if (phl == 0)
+		if (phl <= 0)
 			return null;
 
 		int pp = buffer.position();
