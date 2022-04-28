@@ -18,7 +18,7 @@ public class JobCLI extends Job {
 
         if (readRollbackJournal) {
             /* the readWAL option is enabled -> check the WAL-file too */
-            Logger.out.info(" RollbackJournal-File " + this.rollbackjournalpath);
+            Logger.out.info(" RollbackJournal-File ", this.rollbackjournalpath);
             rol = new RollbackJournalReaderCLI(rollbackjournalpath, this);
             rol.ps = this.ps;
             /* start parsing Rollbackjournal-file */
@@ -27,7 +27,7 @@ public class JobCLI extends Job {
         }
         else if (readWAL) {
             /* the readWAL option is enabled -> check the WAL-file too */
-            Logger.out.info(" WAL-File " + walpath);
+            Logger.out.info(" WAL-File ", walpath);
             WALReaderCLI wal = new WALReaderCLI(walpath, this);
             /* start parsing WAL-file */
             wal.parse();

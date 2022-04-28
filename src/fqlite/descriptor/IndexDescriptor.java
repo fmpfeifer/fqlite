@@ -36,13 +36,13 @@ public class IndexDescriptor extends AbstractDescriptor{
 	
 			/* interpret all byte values as a list of varints */
 			/* each varint represents a columntype */
-			int[] values = Auxiliary.readVarInt(bcol);
+			long[] values = Auxiliary.readVarInt(bcol);
 	
 			/*
 			 * normally, the first byte of the match holds total length of header bytes
 			 * including this byte
 			 */
-			int headerlength = values[0];
+			int headerlength = (int) values[0];
 			info(Integer.toString(headerlength));
 			
 			boolean valid = true;

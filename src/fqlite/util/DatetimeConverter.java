@@ -33,7 +33,7 @@ public class DatetimeConverter{
 	public static String isMacAbsoluteTime(double timestamp)
 	{		
 		long time = (978307200 + (long)timestamp)*1000;
-		logger.info("isMacAbsoluteTime(): " + timestamp + " unix " + time);
+		logger.debug("isMacAbsoluteTime(): ", timestamp, " unix ", time);
 	
 		
 		if (time > UNIX_MIN_DATE && time < UNIX_MAX_DATE)

@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 
 import fqlite.types.SerialTypes;
 import fqlite.types.StorageClasses;
+import fqlite.util.DatetimeConverter;
 
 public class SqliteElementData {
     private SqliteElement column;
@@ -75,6 +76,7 @@ public class SqliteElementData {
             case INT48:
                 return SqliteElement.decodeInt48(data);
             case INT64:
+            case PRIMARY_KEY:
                 return SqliteElement.decodeInt64(data);
             default:
         }
@@ -101,6 +103,62 @@ public class SqliteElementData {
             default:
         }
         return 0.0;
+    }
+    
+    public Object getObject() {
+        if (data.length == 0 && column.type != SerialTypes.INT0 && column.type != SerialTypes.INT1) {
+            return null;
+        }
+
+        switch (column.type) {
+            case INT0:
+                return 0;
+            case INT1:
+                return 1;
+            case STRING:
+                return SqliteElement.decodeString(data, charset).toString();
+            case INT8:
+                return SqliteElement.decodeInt8(data[0]);
+            case INT16:
+                return SqliteElement.decodeInt16(data);
+            case INT24:
+                return SqliteElement.decodeInt24(data);
+            case INT32:
+                return SqliteElement.decodeInt32(data);
+            case INT48:
+            case INT64:
+                long lValue;
+                if (column.type == SerialTypes.INT48) {
+                    lValue = SqliteElement.decodeInt48(data);
+                } else {
+                    lValue = SqliteElement.decodeInt64(data);
+                }
+                if (Global.CONVERT_DATETIME) {
+                    String strDateTime = DatetimeConverter.isUnixEpoch(lValue);
+                    if (null != strDateTime)
+                    {
+                        return strDateTime;
+                    }
+                }
+                return lValue;
+            case FLOAT64:
+                double dValue = SqliteElement.decodeFloat64(data);
+                if (Global.CONVERT_DATETIME) {
+                    String strDateTime = DatetimeConverter.isMacAbsoluteTime(dValue);
+                    if (null != strDateTime) {
+                        return strDateTime;
+                    }
+                }
+                return dValue;
+            case BLOB:
+                return data;
+            case PRIMARY_KEY:
+                return SqliteElement.decodeInt64(data);
+            case NOTUSED1:
+            case NOTUSED2:
+        }
+
+        return null;
     }
     
 }

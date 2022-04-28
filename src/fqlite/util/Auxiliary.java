@@ -5,11 +5,9 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import fqlite.base.Base;
 import fqlite.base.Global;
@@ -33,19 +31,23 @@ import java.nio.Buffer;
  *
  */
 public class Auxiliary extends Base {
-
-	public AtomicInteger found = new AtomicInteger();
-	public AtomicInteger inrecover = new AtomicInteger();
-
-	public static final String TABLELEAFPAGE = "0d";
-	public static final String TABLEINTERIORPAGE = "05";
-	public static final String INDEXLEAFPAGE = "0a";
-	public static final String INDEXINTERIORPAGE = "02";
-	public static final String OVERFLOWPAGE = "00";
+	private static final int TABLELEAFPAGE = 0x0d;
+	private static final int TABLEINTERIORPAGE = 0x05;
+	private static final int INDEXLEAFPAGE = 0x0a;
+	private static final int INDEXINTERIORPAGE = 0x02;
+	private static final int OVERFLOWPAGE = 0x00;
 	
-	final protected static char[] hexArray = "0123456789abcdef".toCharArray();
+	private Job job;
 	
-	public Job job;
+	/**
+     * Constructor. To return values to the calling job environment, an object
+     * reference of job object is required.
+     * 
+     * @param job the job object
+     */
+    public Auxiliary(Job job) {
+        this.job = job;
+    }
 
 	/**
 	 * Get the type of page. There are 4 different basic types in SQLite: (1)
@@ -55,14 +57,13 @@ public class Auxiliary extends Base {
 	 * Beside this, we can further find overflow pages and removed pages. Both start
 	 * with the 2-byte value 0x00.
 	 * 
-	 * @param content the page content as a String
+	 * @param byteType the byte containing the page type
 	 * @return type of page
 	 */
-	public static int getPageType(String content) {
+	public static int getPageType(byte byteType) {
 
 		boolean skip = false;
-		String type = content.substring(0, 2);
-		switch (type) {
+		switch (byteType) {
 
 		case TABLELEAFPAGE:
 			return 8;
@@ -92,94 +93,27 @@ public class Auxiliary extends Base {
 	}
 
 	/**
-	 * Constructor. To return values to the calling job environment, an object
-	 * reference of job object is required.
-	 * 
-	 * @param job the job object
-	 */
-	public Auxiliary(Job job) {
-		this.job = job;
-	}
-
-	/**
 	 * An important step in data recovery is the analysis of the database schema.
 	 * This method allows to read in the schema description into a ByteBuffer.
 	 * 
-	 * @param job the job object
 	 * @param start the start position
-	 * @param buffer the buffer to be written to
-	 * @param header the header
+	 * @param buffer the buffer to be read
+	 * @param headerSize the size of the header
 	 * @return true if successful
 	 * @throws IOException if an I/O error occurs
 	 */
-	public boolean readMasterTableRecord(Job job, int start, ByteBuffer buffer, String header) throws IOException {
+	public boolean readMasterTableRecord(int start, ByteBuffer buffer, int headerSize) throws IOException {
 
 		SqliteElement[] columns;
 
 		buffer.position(start);
+		byte[] headerBytes = BufferUtil.allocateByteBuffer(headerSize - 1);
+		buffer.get(headerBytes);
 
-		columns = toColumns(header, job.db_encoding);
+		columns = convertHeaderToSqliteElements(headerBytes, job.db_encoding);
 
 		if (null == columns)
 			return false;
-
-		// use the header information to reconstruct
-		//int pll = computePayloadLength(header);
-
-		//int so = computePayload(pll);
-
-//		int overflow = -1;
-//		if (so < pll) {
-//			int phl = header.length() / 2;
-//
-//			int last = buffer.position();
-//			debug(" spilled payload ::" + so);
-//			debug(" pll payload ::" + pll);
-//			
-//			if ((buffer.position() + so - phl - 1) > buffer.limit())
-//				return false;
-//			
-//			buffer.position(buffer.position() + so - phl - 1);
-//
-//			overflow = buffer.getInt();
-//			debug(" overflow::::::::: " + overflow + " " + Integer.toHexString(overflow));
-//			/* regular overflow or rubbish value? */
-//			if (overflow >job.file.size())
-//				return false;
-//			buffer.position(last);
-//
-//			/*
-//			 * we need to increment page number by one since we start counting with zero for
-//			 * page 1
-//			 */
-//			byte[] extended = readOverflow(overflow - 1);
-//
-//			byte[] c = new byte[pll + job.ps];
-//
-//			buffer.position(0);
-//
-//			/* method array() cannot be called, since we backed an array */
-//			byte[] originalbuffer = new byte[job.ps];
-//			for (int bb = 0; bb < job.ps; bb++) {
-//				originalbuffer[bb] = buffer.get(bb);
-//			}
-//
-//			buffer.position(last);
-//
-//			/* copy spilled overflow of current page into extended buffer */
-//			System.arraycopy(originalbuffer, buffer.position(), c, 0, so - phl);
-//			
-//			/* append the rest startRegion the overflow pages to the buffer */
-//			if (null != extended)
-//				System.arraycopy(extended, 0, c, so - phl - 1, extended.length); // - so);
-//			ByteBuffer bf = ByteBuffer.wrap(c);
-//
-//			buffer = bf;
-//
-//			// set original buffer pointer to the end of the spilled payload
-//			// just before the next possible record
-//			buffer.position(0);
-//		}
 
 		int con = 0;
 
@@ -194,12 +128,7 @@ public class Auxiliary extends Base {
 				continue;
 			}
 
-			byte[] value = null;
-
-			if (con == 5)
-				value = BufferUtil.allocateByteBuffer(en.length);
-			else
-				value = BufferUtil.allocateByteBuffer(en.length);
+			byte[] value = BufferUtil.allocateByteBuffer(en.length);
 
 			try
 			{
@@ -210,13 +139,13 @@ public class Auxiliary extends Base {
 				return false;
 			}
 			
-			/* column 3 ? -> tbl_name TEXT */
-			if (con == 3) {
+			/* column 2 ? -> tbl_name TEXT */
+			if (con == 2) {
 				tablename = en.toString(value);
 			}
 
-			/* column 4 ? -> root page Integer */
-			if (con == 4) {
+			/* column 3 ? -> root page Integer */
+			if (con == 3) {
 				if (value.length == 0)
 					debug("Seems to be a virtual component -> no root page ;)");
 				else {
@@ -226,7 +155,7 @@ public class Auxiliary extends Base {
 
 			/* read sql statement */
 
-			if (con == 5) {
+			if (con == 4) {
 				statement = en.toString(value);
 				break; // do not go further - we have everything we need
 			}
@@ -236,6 +165,9 @@ public class Auxiliary extends Base {
 		}
 
 		// finally, we have all information in place to parse the CREATE statement
+		if (tablename == null || statement == null || rootpage < 0)
+		    return false;
+		
 		job.schemaParser.parse(job, tablename, rootpage, statement);
 
 		return true;
@@ -301,12 +233,12 @@ public class Auxiliary extends Base {
 			int phl = header.length() / 2;
 
 			int last = buffer.position();
-			debug(" deleted spilled payload ::" + so);
-			debug(" deleted pll payload ::" + pll);
+			debug(" deleted spilled payload ::", so);
+			debug(" deleted pll payload ::", pll);
 			buffer.position(buffer.position() + so - phl - 1);
 
 			overflow = buffer.getInt();
-			debug(" deleted overflow::::::::: " + overflow + " " + Integer.toHexString(overflow));
+			debug(" deleted overflow::::::::: ", overflow, " ", Integer.toHexString(overflow));
 			buffer.position(last);
 
 			ByteBuffer bf;
@@ -363,6 +295,7 @@ public class Auxiliary extends Base {
 			/* start reading the content */
 			for (SqliteElement en : columns) {
 				if (en == null) {
+					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -384,6 +317,7 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 
 				if (en == null) {
+					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -406,9 +340,9 @@ public class Auxiliary extends Base {
 
 		/* mark bytes as visited */
 		bs.set(recordstart, buffer.position() - 1, true);
-		debug("visited :: " + recordstart + " bis " + buffer.position());
+		debug("visited :: ", recordstart, " to ", buffer.position());
 		int cursor = ((pagenumber - 1) * job.ps) + buffer.position();
-		debug("visited :: " + (((pagenumber - 1) * job.ps) + recordstart) + " bis " + cursor);
+		debug("visited :: ", (((pagenumber - 1) * job.ps) + recordstart), " to ", cursor);
 
 		/* append header match string at the end */
 		row.setLineSuffix("##header##" + header);
@@ -417,22 +351,6 @@ public class Auxiliary extends Base {
 		// tables.put(idxname, new ArrayList<String[]>());
 		debug(row);
 		return new CarvingResult(buffer.position(), cursor, row);
-	}
-
-	/**
-	 * Convert a UTF16-String into an UTF8-String.
-	 * 
-	 * @param s the string to convert
-	 * @return the converted string
-	 */
-	public static String convertToUTF8(String s) {
-		String out = null;
-		try {
-			out = new String(s.getBytes("UTF-8"), "ISO-8859-1");
-		} catch (java.io.UnsupportedEncodingException e) {
-			return null;
-		}
-		return out;
 	}
 
 	/**
@@ -455,16 +373,14 @@ public class Auxiliary extends Base {
 	 * @param firstcol the buffer to be written to
 	 * @param withoutROWID if there is no RowID
 	 * @param filepointer the file pointer
-	 * @param charset Charset used in database
 	 * @return the row
 	 * @throws IOException if an error occurs
 	 * 
 	 **/
 	public SqliteRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
-			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer, Charset charset) throws IOException {
+			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer) throws IOException {
 
 		boolean unkown = false;
-
 		// first byte of the buffer
 		buffer.position(0);
 
@@ -512,30 +428,30 @@ public class Auxiliary extends Base {
 			unkown = true;
 		}
 
-		info("cellstart for pll: " + ((pagenumber_db - 1) * job.ps + cellstart));
+		info("cellstart for pll: ", ((pagenumber_db - 1) * job.ps + cellstart));
 		// length of payload as varint
 		buffer.position(cellstart);
-		int pll = readUnsignedVarInt(buffer);
-		debug("Length of payload int : " + pll + " as hex : " + Integer.toHexString(pll));
+		int pll = (int) readUnsignedVarInt(buffer);
+		debug("Length of payload int : ", pll, " as hex : ", Integer.toHexString(pll));
 
 		if (pll < 4)
 			return null;
 
-		int rowid = 0;
+		long rowid = 0;
 
 		/* Do we have a ROWID component or not? 95% of SQLite Tables have a ROWID */
 		if (!withoutROWID) {
 
 			if (unkown) {
 				rowid = readUnsignedVarInt(buffer);
-				debug("rowid: " + Integer.toHexString(rowid));
+				debug("rowid: ", Long.toHexString(rowid));
 			} else {
 				if (pagenumber_db >= job.pages.length) {
 
 				} else if (null == job.pages[pagenumber_db] || job.pages[pagenumber_db].ROWID) {
 					// read rowid as varint
 					rowid = readUnsignedVarInt(buffer);
-					debug("rowid: " + Integer.toHexString(rowid));
+					debug("rowid: ", Long.toHexString(rowid));
 					// We do not use this key in the moment.
 					// However, we have to read the value.
 				}
@@ -544,14 +460,14 @@ public class Auxiliary extends Base {
 		}
 
 		// now read the header length as varint
-		int phl = readUnsignedVarInt(buffer);
+		int phl = (int) readUnsignedVarInt(buffer);
 
 		/* error handling - if header length is 0 */
 		if (phl == 0) {
 			return null;
 		}
 
-		debug("Header Length int: " + phl + " as hex : " + Integer.toHexString(phl));
+		debug("Header Length int: ", phl, " as hex : ", Integer.toHexString(phl));
 
 		phl -= 1;
 
@@ -579,18 +495,7 @@ public class Auxiliary extends Base {
 		String hh = getHeaderString(phl, buffer);
 		buffer.position(pp);
 		
-		/* this sesssion seems to be for debug, so skip it ** FMP
-		info("Header-String" + hh);
-
-        int[] values = readVarInt(decode(hh));
-        int cc = 0;
-        for(int v: values)
-        {
-            cc++;
-            info("header length [" + cc + "] " + v);
-        }*/
-
-		columns = getColumns(phl, buffer, firstcol, charset);
+		columns = getColumns(phl, buffer, firstcol);
 
 		if (null == columns) {
 			debug(" No valid header. Skip recovery.");
@@ -632,7 +537,7 @@ public class Auxiliary extends Base {
 
 		if (so < pll) {
 			int last = buffer.position();
-			debug("regular spilled payload ::" + so);
+			debug("regular spilled payload ::", so);
 			if ((buffer.position() + so - phl - 1) > (buffer.limit() - 4)) {
 				return null;
 			}
@@ -646,7 +551,7 @@ public class Auxiliary extends Base {
 
 			if (overflow < 0)
 				return null;
-			debug("regular overflow::::::::: " + overflow + " " + Integer.toHexString(overflow));
+			debug("regular overflow::::::::: ", overflow, " ", Integer.toHexString(overflow));
 			buffer.position(last);
 
 			/*
@@ -700,7 +605,7 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";NULL");
-				    row.append(new SqliteElementData(null, charset));
+				    row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -712,8 +617,7 @@ public class Auxiliary extends Base {
 				    byte[] value = BufferUtil.allocateByteBuffer(en.length);
 
 				    if ((bf.limit() - bf.position()) < value.length) {
-				        info(
-				                " Bufferunderflow " + (bf.limit() - bf.position()) + " is lower than" + value.length);
+				        info(" Bufferunderflow ", (bf.limit() - bf.position()), " is lower than", value.length);
 				    }
 
 				    try {
@@ -724,8 +628,11 @@ public class Auxiliary extends Base {
 				        //lineUTF.append(write(co, en, value));
 
 				    } catch (java.nio.BufferUnderflowException bue) {
+						row.append(new SqliteElementData(null, job.db_encoding));
     					err("readRecord():: overflow java.nio.BufferUnderflowException");
     				}
+				} else {
+					row.append(new SqliteElementData(null, job.db_encoding));
 				}
 
 				co++;
@@ -751,7 +658,7 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";");
-				    row.append(new SqliteElementData("", charset));
+				    row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -771,7 +678,7 @@ public class Auxiliary extends Base {
 				try {
 					buffer.get(value);
 				} catch (BufferUnderflowException err) {
-					info("readRecord():: no overflow ERROR " + err);
+					info("readRecord():: no overflow ERROR ", err);
 					// err.printStackTrace();
 					return null;
 				}
@@ -779,6 +686,8 @@ public class Auxiliary extends Base {
 				//lineUTF.append(write(co, en, value));
 				if (en.length > 0 || co > 0) {
 				    row.append(new SqliteElementData(en, value));
+				} else {
+					row.append(new SqliteElementData(null, job.db_encoding));
 				}
 
 				co++;
@@ -795,7 +704,7 @@ public class Auxiliary extends Base {
 		//lineUTF.append("\n");
 
 		/* mark as visited */
-		debug("visted " + cellstart + " bis " + buffer.position());
+		debug("visted ", cellstart, " to ", buffer.position());
 		bs.set(cellstart, buffer.position());
 
 		if (error) {
@@ -863,14 +772,14 @@ public class Auxiliary extends Base {
 
         while(more)
         {
-            info("before Read() " + next);
+            info("before Read() ", next);
             /* read next overflow page into buffer */
             overflowpage = job.readPageWithNumber(next, job.ps);
 
             if (overflowpage != null) {
                 overflowpage.position(0);
                 next = overflowpage.getInt()-1;
-                info(" next overflow:: " + next);
+                info(" next overflow:: ", next);
             } 
             else {
                 more = false;
@@ -915,96 +824,18 @@ public class Auxiliary extends Base {
     }
 
 	/**
-	 * Reads the specified page as overflow.
-	 * 
-	 * Background: When the payload of a record is to large, it is spilled onto
-	 * overflow pages. Overflow pages form a linked list. The first four bytes of
-	 * each overflow page are a big-endian integer which is the page number of the
-	 * next page in the chain, or zero for the final page in the chain. The fifth
-	 * byte through the last usable byte are used to hold overflow content.
-	 *
-	 *
-	 * @param pagenumber
-	 * @return all bytes that belong to the payload
-	 * @throws IOException 
-	 * @deprecated
-	 */
-    private byte[] readOverflowRecursiv(int pagenumber, HashSet<Integer> visited) throws IOException {
-		byte[] part = null;
-		
-		if (visited.contains(pagenumber))
-        {
-            /* avoid infinite recursion and stack overflow error*/
-        }
-
-		/* read the next overflow page startRegion file */
-		if (pagenumber > job.ps)
-		   return null;
-		ByteBuffer overflowpage = job.readPageWithNumber(pagenumber, job.ps);
-
-		int overflow = 0;
-		if (overflowpage != null) {
-			overflowpage.position(0);
-			overflow = overflowpage.getInt();
-			info(" overflow:: " + overflow);
-		} else {
-			return null;
-		}
-
-		if (overflow == 0 || overflow > job.numberofpages) {
-			// termination condition for the recursive callup's
-			debug("No further overflow pages");
-			/* startRegion the last overflow page - do not copy the zero bytes. */
-		} else {
-			/* recursively call next overflow page in the chain */
-			part = readOverflowRecursiv(overflow,visited);
-		}
-
-		/*
-		 * we always crab the complete overflow-page minus the first four bytes - they
-		 * are reserved for the (possible) next overflow page offset
-		 **/
-		byte[] current = BufferUtil.allocateByteBuffer(job.ps - 4);
-		// System.out.println("current ::" + current.length);
-		// System.out.println("bytes:: " + (job.ps -4));
-		// System.out.println("overflowpage :: " + overflowpage.limit());
-
-		overflowpage.position(4);
-		overflowpage.get(current, 0, job.ps - 4);
-
-		/* Do we have a predecessor page? */
-		if (null != part) {
-			/* merge the overflow pages together to one byte-array */
-			byte[] of = BufferUtil.allocateByteBuffer(current.length + part.length);
-			System.arraycopy(current, 0, of, 0, current.length);
-			System.arraycopy(part, 0, of, current.length, part.length);
-			return of;
-		}
-
-		/* we have the last overflow page - no predecessor pages */
-		return current;
-	}
-
-	/**
 	 * Convert a base16 string into a byte array.
 	 * @param s the String to be decoded
 	 * @return the decoded byte array
 	 */
 	public static byte[] decode(String s) {
-		int len = s.length();
-		byte[] r = BufferUtil.allocateByteBuffer(len / 2);
-		for (int i = 0; i < r.length; i++) {
-			int digit1 = s.charAt(i * 2), digit2 = s.charAt(i * 2 + 1);
-			if (digit1 >= '0' && digit1 <= '9')
-				digit1 -= '0';
-			else if (digit1 >= 'a' && digit1 <= 'f')
-				digit1 -= 'a' - 10;
-			if (digit2 >= '0' && digit2 <= '9')
-				digit2 -= '0';
-			else if (digit2 >= 'a' && digit2 <= 'f')
-				digit2 -= 'a' - 10;
-
-			r[i] = (byte) ((digit1 << 4) + digit2);
+		char[] data = s.toCharArray();
+		int len = data.length;
+		byte[] r = BufferUtil.allocateByteBuffer(len >> 1);
+		for (int i = 0, j = 0; j < len; i++) {
+			int f = Character.digit(data[j++], 16) << 4;
+			f = f | Character.digit(data[j++], 16);
+			r[i] = (byte) (f & 0xFF);
 		}
 		return r;
 	}
@@ -1016,17 +847,17 @@ public class Auxiliary extends Base {
 	 * @param header should be the complete header without headerlength byte
 	 * @return the number of bytes including header and payload
 	 */
-	public int computePayloadLength(String header) {
+	private int computePayloadLength(String header) {
 		// System.out.println("HEADER" + header);
 		byte[] bcol = Auxiliary.decode(header);
 
-		int[] columns = readVarInt(bcol);
+		long[] columns = readVarInt(bcol);
 		int pll = 0;
 
 		pll += header.length() / 2 + 1;
 
 		for (int i = 0; i < columns.length; i++) {
-			switch (columns[i]) {
+			switch ((int)columns[i]) {
 			case 0: // zero length - primary key is saved in indices component
 				break;
 			case 1:
@@ -1085,8 +916,8 @@ public class Auxiliary extends Base {
 	 */
 	public static SqliteElement[] toColumns(String header, Charset charset) {
 		/* hex-String representation to byte array */
-		byte[] bcol = Auxiliary.decode(header);
-		return get(bcol, charset);
+		byte[] bcol = decode(header);
+		return convertHeaderToSqliteElements(bcol, charset);
 	}
 
 	public String getHeaderString(int headerlength, ByteBuffer buffer) {
@@ -1097,10 +928,10 @@ public class Auxiliary extends Base {
 			buffer.get(header);
 
 		} catch (Exception err) {
-			err("ERROR " + err.toString());
+			err("ERROR ", err);
 		}
 
-		String sheader = Auxiliary.bytesToHex(header);
+		String sheader = bytesToHex(header);
 
 		return sheader;
 	}
@@ -1113,10 +944,9 @@ public class Auxiliary extends Base {
 	 * @param buffer       the headerbytes
 	 * @param firstcol the buffer to be filled with the first column
 	 * @return the column field
-	 * @param charset Charset used in database
 	 * @throws IOException if the buffer is not readable
 	 */
-	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol, Charset charset) throws IOException {
+	public SqliteElement[] getColumns(int headerlength, ByteBuffer buffer, StringBuffer firstcol) throws IOException {
 
 		byte[] header = BufferUtil.allocateByteBuffer(headerlength);
 
@@ -1125,18 +955,18 @@ public class Auxiliary extends Base {
 			buffer.get(header);
 
 		} catch (Exception err) {
-			err("Auxiliary::ERROR " + err.toString());
+			err("Auxiliary::ERROR ", err);
 			return null;
 		}
 
-		String sheader = Auxiliary.bytesToHex(header);
+		String sheader = bytesToHex(header);
 
 		if (sheader.length() > 1) {
 			firstcol.insert(0, sheader.substring(0, 2));
 		}
 		// System.out.println("getColumns():: + Header: " + sheader);
 
-		return get(header, charset);
+		return convertHeaderToSqliteElements(header, job.db_encoding);
 	}
 
 	/**
@@ -1147,9 +977,9 @@ public class Auxiliary extends Base {
 	 * @param charset Charset to be used in decoding
 	 * @return SqliteElements converted
 	 */
-	public static SqliteElement[] get(byte[] header, Charset charset) {
+	public static SqliteElement[] convertHeaderToSqliteElements(byte[] header, Charset charset) {
 		// there are several varint values in the serialtypes header
-		int[] columns = readVarInt(header);
+		long[] columns = readVarInt(header);
 		if (null == columns)
 			return null;
 
@@ -1157,7 +987,7 @@ public class Auxiliary extends Base {
 
 		for (int i = 0; i < columns.length; i++) {
 
-			switch (columns[i]) {
+			switch ((int)columns[i]) {
 			case 0: // primary key or null value <empty> cell
 				column[i] = new SqliteElement(SerialTypes.PRIMARY_KEY, StorageClasses.INT, 0, charset);
 				break;
@@ -1198,7 +1028,7 @@ public class Auxiliary extends Base {
 				if (columns[i] % 2 == 0) // even
 				{
 					// BLOB with the length (N-12)/2
-				    int len = (columns[i] - 12) / 2;
+				    int len = (int) (columns[i] - 12) / 2;
 				    if (len >= 0) {
 				        column[i] = new SqliteElement(SerialTypes.BLOB, StorageClasses.BLOB, len, charset);
 				    }
@@ -1206,7 +1036,7 @@ public class Auxiliary extends Base {
 				else // odd
 				{
 					// String in database encoding (N-13)/2
-				    int len = (columns[i] - 13) / 2;
+				    int len = (int) (columns[i] - 13) / 2;
 				    if (len >= 0 ) {
 				        column[i] = new SqliteElement(SerialTypes.STRING, StorageClasses.TEXT, len, charset);
 				    }
@@ -1239,9 +1069,9 @@ public class Auxiliary extends Base {
 
 		int k = m + ((p - m) % (u - 4));
 		
-		info("p " + p);
-        info("k " + k);
-        info("m " + m);
+		info("p ", p);
+        info("k ", k);
+        info("m ", m);
 
 		// case 1: all P bytes of payload are stored directly on the btree page without
 		// overflow.
@@ -1268,14 +1098,20 @@ public class Auxiliary extends Base {
 	 * @return a normal integer value extracted startRegion the buffer
 	 * @throws IOException if the buffer is empty
 	 */
-	public static int readUnsignedVarInt(ByteBuffer buffer) throws IOException {
+	public static long readUnsignedVarInt(ByteBuffer buffer) throws IOException {
 
 	    byte b = buffer.get();
-        int value = b & 0x7F;
-        while ((b & 0x80) != 0) {
+        long value = b & 0x7F;
+        int counter = 0;
+        while ((b & 0x80) != 0 && counter < 8) {
+            counter ++;
             b = buffer.get();
             value <<= 7;
-            value |= (b & 0x7F);
+            if (counter == 8)
+                value |= (b & 0xFF);
+            else
+                value |= (b & 0x7F);
+            
         }
         return value;
 	}
@@ -1291,16 +1127,30 @@ public class Auxiliary extends Base {
 	
 		
 		byte [] ret = new byte[4];
-		ret[0] = 0;
-		ret[1] = 0;
 		ret[2] = b.get(0);
 		ret[3] = b.get(1);
 		
-		
 		return ByteBuffer.wrap(ret).getInt();
 	}
+	
+	/**
+     * Auxiliary method for reading one of a two-byte number in a data field of type
+     * short.
+     * 
+     * @param b the two bytes buffer
+     * @return the decoded value
+     */
+    public static int TwoByteBuffertoInt(byte [] b) {
+    
+        
+        byte [] ret = new byte[4];
+        ret[2] = b[0];
+        ret[3] = b[1];
+        
+        return ByteBuffer.wrap(ret).getInt();
+    }
 
-	private void checkROWID(int co, SqliteElement en, int rowid, SqliteRow row) {
+	private void checkROWID(int co, SqliteElement en, long rowid, SqliteRow row) {
 		/* There is a ROWID column ? */
 		if (co == 0 && en.length == 0) {
 			/*
@@ -1315,26 +1165,9 @@ public class Auxiliary extends Base {
 			 * -> take the rowid instead;
 			 */
 			//lineUTF.append(rowid);
-		    row.append(new SqliteElementData(en, (long)rowid));
+		    row.append(new SqliteElementData(en, rowid));
 			// System.out.println("PRIMARY KEY COLUMN ALIASED ROWID");
 		}
-	}
-
-	// Function to find the
-	// Nth occurrence of a character
-	public static int findNthOccur(String str, char ch, int N) {
-		int occur = 0;
-
-		// Loop to find the Nth
-		// occurence of the character
-		for (int i = 0; i < str.length(); i++) {
-			if (str.charAt(i) == ch) {
-				occur += 1;
-			}
-			if (occur == N)
-				return i;
-		}
-		return -1;
 	}
 
 	/**
@@ -1387,7 +1220,7 @@ public class Auxiliary extends Base {
 		/* assign the new matching pattern with the index descriptor object */
 		id.hpattern = pattern;
 
-		Logger.out.info("addHeaderPattern2Idx() :: PATTTERN: " + pattern);
+		Logger.out.info("addHeaderPattern2Idx() :: PATTTERN: ", pattern);
 
 	}
 
@@ -1397,18 +1230,7 @@ public class Auxiliary extends Base {
      * @return String with hex representation of bytes
      */
 	public static String bytesToHex(byte[] bytes) {
-
-		StringBuilder sb = new StringBuilder();
-		for (byte hashByte : bytes) {
-
-			int intVal = 0xff & hashByte;
-			if (intVal < 0x10) {
-				sb.append('0');
-			}
-			sb.append(Integer.toHexString(intVal));
-		}
-		return sb.toString();
-
+		return bytesToHex(bytes, 0, bytes.length);
 	}
 
 	/**
@@ -1432,21 +1254,21 @@ public class Auxiliary extends Base {
 	public static String bytesToHex(ByteBuffer bb)
 	{
 		int limit = bb.limit();
-		char[] hexChars = new char[limit * 2];
+		StringBuilder sb = new StringBuilder(limit * 2);
 		
 		bb.position(0);
-		int counter = 0;
 		
 		while (bb.position() < limit)
 		{
 		
-			int v = bb.get() & 0xFF;
-			hexChars[counter * 2] = hexArray[v >>> 4];
-			hexChars[counter * 2 + 1] = hexArray[v & 0x0F];
-			counter++;
+			int intVal = bb.get() & 0xFF;
+			if (intVal < 0x10) {
+                sb.append('0');
+            }
+            sb.append(Integer.toHexString(intVal));
 		}
 		
-		return new String(hexChars);
+		return sb.toString();
 	}
 	
 	/**
@@ -1460,14 +1282,8 @@ public class Auxiliary extends Base {
      * @return String with hex representation of bytes
      */
 	public static String bytesToHex(byte[] bytes, int fromidx, int toidx) {
-		char[] hexChars = new char[(toidx - fromidx + 2) * 2];
-
-		for (int j = 0; j < toidx; j++) {
-			int v = bytes[j] & 0xFF;
-			hexChars[j * 2] = hexArray[v >>> 4];
-			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-		}
-		return new String(hexChars);
+	    ByteBuffer buffer = ByteBuffer.wrap(bytes, fromidx, toidx-fromidx);
+	    return bytesToHex(buffer);
 	}
 
 	
@@ -1476,70 +1292,35 @@ public class Auxiliary extends Base {
      * @param values in buffer to read from
      * @return the int value
      */
-    public static int[] readVarInt(byte[] values){
+    public static long[] readVarInt(byte[] values){
 
         ByteBuffer in = ByteBuffer.wrap(values);
-        LinkedList<Integer> res = new LinkedList<Integer>();
+        LinkedList<Long> res = new LinkedList<Long>();
 
 
         while (in.position() < in.limit()) {
             byte b = in.get();            
-            int value = b & 0x7F;
-            while ((b & 0x80) != 0) {
+            long value = b & 0x7F;
+            int counter = 0;
+            while ((b & 0x80) != 0 && counter < 8) {
+                counter ++;
                 if (in.position() >= in.limit()) {
                     return null;
                 }
                 b = in.get();
                 value <<= 7;
-                value |= (b & 0x7F);
+                if (counter == 8) {
+                    value |= (b & 0xFF); 
+                } else {
+                    value |= (b & 0x7F);
+                }
             }
 
             res.add(value);
         } 
 
-        int[] result = new int[res.size()];
-        int n = 0;
-                
-        for (int val : res) {
-            result[n++] = val;
-        }
-        
-        return result;
+		return res.stream().mapToLong(i -> i).toArray();        
     }
-
-    /**
-     * Don't use. Old implementation. 
-     * @param values values to read
-     * @return int array
-     * @deprecated
-     */
-    public static int[] readVarIntOld(byte[] values) {
-		
-		int value = 0;
-		int counter = 0;
-		byte b = 0;
-		int shift = 0;
-		
-		LinkedList<Integer> res = new LinkedList<Integer>();
-
-		while (counter < values.length) {
-
-			b = values[counter];
-			value = 0;
-			while (((b = values[counter]) & 0x80) != 0) {
-
-				shift=7;
-				value |= (b & 0x7F) << shift;
-				counter++;
-				if (counter >= values.length) {
-					return null;
-				}
-			}
-			res.add(value | b);
-			counter++;
-		}
-		return res.stream().mapToInt(i->i).toArray();		
-	}
 	
 	public static String getSerial(SqliteElement[] columns) {
 		String serial = "";
@@ -1557,22 +1338,14 @@ public class Auxiliary extends Base {
 		return fp;
 	}
 
-	static boolean contains(ByteBuffer bb, String searchText) {
-		String text = new String(bb.array());
-		if (text.indexOf(searchText) > -1)
-			return true;
-		else
-			return false;
-	}
-
 	public static void printStackTrace() {
 		Logger.out.info("Printing stack trace:");
 
 		StackTraceElement[] elements = Thread.currentThread().getStackTrace();
 		for (int i = 1; i < elements.length; i++) {
 			StackTraceElement s = elements[i];
-			Logger.out.info("\tat " + s.getClassName() + "." + s.getMethodName() + "(" + s.getFileName() + ":"
-					+ s.getLineNumber() + ")");
+			Logger.out.info("\tat ", s.getClassName(), ".", s.getMethodName(), "(", s.getFileName(), ":",
+					s.getLineNumber(), ")");
 		}
 	}
 	
@@ -1584,16 +1357,16 @@ public class Auxiliary extends Base {
 	 * @return the number of bytes including header and payload
 	 */
 	public static int computePayloadLengthS(String header) {
-	    Logger.out.info("HEADER" + header);
+	    Logger.out.info("HEADER", header);
 		byte[] bcol = Auxiliary.decode(header);
-		int[] columns = Auxiliary.readVarInt(bcol);
+		long[] columns = Auxiliary.readVarInt(bcol);
 		int pll = 0;
 
 	
 		pll += header.length() / 2 + 1;
 
 		for (int i = 0; i < columns.length; i++) {
-			switch (columns[i]) {
+			switch ((int) columns[i]) {
 			case 0: // zero length - primary key is saved in indices component
 				break;
 			case 1:
@@ -1680,54 +1453,78 @@ public class Auxiliary extends Base {
 
 		return p;
 	}
-	
-	/**
-	 * Conversion routine from a byte array to hex-String representation. 
-	 * @param b the byte array to be converted
-	 * @return the hex-String representation
-	 */
-	private static String I2H(byte[] b) {
     
-        char buf[] = new char[b.length * 3 - 1];
-        int k = b[0] & 0xff;
-        buf[0] = hexArray[k >>> 4];
-        buf[1] = hexArray[k & 0xf];
-        for (int i = 1; i < b.length; ) {
-            k = b[i] & 0xff;
-            //buf[i++] = ':';
-            buf[i++] = hexArray[k >>> 4];
-            buf[i++] = hexArray[k & 0xf];
+    private static final int[] FALSE_INT_ARRAY_RESP = new int[] {Integer.MIN_VALUE, Integer.MIN_VALUE};
+    
+    private int[] validateHeaderBytes(byte[] headerBytes, int start) {
+        int size = headerBytes[start] - 1;
+        if (size < headerBytes.length - start) {
+            byte[] headerCols = new byte[size];
+            System.arraycopy(headerBytes, start + 1, headerCols, 0, size);
+            SqliteElement[] cols = convertHeaderToSqliteElements(headerCols, job.db_encoding);
+            if (cols != null) {
+                return new int[] {cols.length, size};
+            }
         }
-        
-        return new String(buf);
+        return FALSE_INT_ARRAY_RESP;
     }
-	
-	/**
-     * Converts and 4-Byte integer value into a hex-String. 
-     * @param i the integer value to be converted
-	 * @return the hex-String representation
+       
+    /**
+     * Verify if the bytes form a valid header of a record for the master table
+     * 
+     * @param headerBytes the header bytes
+     * @param start position of first byte to be read in buffer
+     * @param end end of the header bytes
+     * @return int[] first element - start of the header, second element - size of header
      */
-	public static String Int2Hex(int i)
-    {
-    	 return Auxiliary.bytesToHex(new byte[] {(byte)(i >>> 24),(byte)(i >>> 16),(byte)(i >>> 8), (byte)i});
+    public int[] validateIntactMasterTableHeader(byte[] headerBytes, int start, int end) {
+        for (int i = 0; i < 6; i++) {
+            int firstByte = headerBytes[i+start];
+            if (firstByte >= 6 && firstByte <= 9) {
+                if (start + i + firstByte != end)
+                    continue;
+                int [] valData = validateHeaderBytes(headerBytes, i+start);
+                int numCols = valData[0];
+                int sizeHeader = valData[1];
+                if (numCols == 5) {
+                    return new int[] {i, sizeHeader + 1};
+                }
+            }
+        }
+        return FALSE_INT_ARRAY_RESP;
     }
     
-	public static int varintHexString2Integer(String s) throws IOException
-    {
-        byte [] value = hexStringToByteArray(s);
-        ByteBuffer bb =  ByteBuffer.wrap(value);
-        return readUnsignedVarInt(bb);
+    /**
+     * Verify if the bytes form a valid header of a record for the master table
+     * 
+     * @param headerBytes the header bytes
+     * @param end end of the header bytes
+     * @return int[] first element - start of the header, second element - size of header
+     */
+    public int[] validateIntactMasterTableHeader(byte[] headerBytes, int end) {
+        return validateIntactMasterTableHeader(headerBytes, 0, end);
     }
-
-    /* s must be an even-length string. */
-    public static byte[] hexStringToByteArray(String s) {
-        int len = s.length();
-        byte[] data = BufferUtil.allocateByteBuffer(len / 2);
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                                 + Character.digit(s.charAt(i+1), 16));
+    
+    /**
+     * Verify if the bytes form a valid header of a partially overwritten record for the master table
+     * 
+     * @param headerBytes the header bytes
+     * @param end end of the header bytes
+     * @return int[] first element - start of the header, second element - size of header
+     */
+    public int[] validateOverwrittenMasterTableHeader(byte[] headerBytes, int end) {
+        byte [] headerBytesExtended = new byte[headerBytes.length + 1];
+        System.arraycopy(headerBytes, 0, headerBytesExtended, 1, headerBytes.length);
+        for (int i = 0; i < 6; i++) {
+            for (int size = 6; size <= 9; size ++) {
+                headerBytesExtended[i] = (byte) (size & 0xFF);
+                int [] valData = validateIntactMasterTableHeader(headerBytesExtended, i, end + 1);
+                if (valData[0] >= 0) {
+                    return new int[] { i + valData[0] - 1, valData[1] };
+                }
+            }
         }
-        return data;
+        return FALSE_INT_ARRAY_RESP;
     }
 	
 }

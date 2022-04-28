@@ -1,14 +1,14 @@
 package fqlite.util;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public class RandomAccessFileReader implements Closeable {
+public class RandomAccessFileReader extends LongPositionByteBuffer {
 
     private static final int BUFFER_SIZE = 65536;
 
@@ -17,10 +17,10 @@ public class RandomAccessFileReader implements Closeable {
     private long position;
     private long size;
     private long bufferPosition;
-    private Object lock;
+    
 
     public RandomAccessFileReader(Path path) throws IOException {
-        lock = new Object();
+        super();
         channel = FileChannel.open(path, StandardOpenOption.READ);
         size = channel.size();
         position = 0;
@@ -56,22 +56,7 @@ public class RandomAccessFileReader implements Closeable {
         }
     }
 
-    public ByteBuffer allocateAndReadBuffer(int size) throws IOException {
-        synchronized (lock) {
-            byte [] bytes = BufferUtil.allocateByteBuffer(size);
-            get(bytes);
-            return ByteBuffer.wrap(bytes);
-        }
-    }
-
-    public ByteBuffer allocateAndReadBuffer(long position, int size) throws IOException {
-        synchronized (lock) {
-            position(position);
-            return allocateAndReadBuffer(size); 
-        }
-    }
-
-    public RandomAccessFileReader get(byte[] dst, int offset, int length) throws IOException {
+    public LongPositionByteBuffer get(byte[] dst, int offset, int length) throws IOException {
         synchronized (lock) {
             position(position);
             while (length > 0) {
@@ -85,7 +70,7 @@ public class RandomAccessFileReader implements Closeable {
         }
     }
 
-    public RandomAccessFileReader get(byte[] dst) throws IOException {
+    public LongPositionByteBuffer get(byte[] dst) throws IOException {
         synchronized (lock) {
             return get(dst, 0, dst.length);
         }
@@ -96,7 +81,7 @@ public class RandomAccessFileReader implements Closeable {
         int positionInBuffer = (int) (position % BUFFER_SIZE);
         if (newBufferPos != bufferPosition) {
             bufferPosition = newBufferPos;
-            buffer.clear();
+            ((Buffer) buffer).clear();
             channel.position(bufferPosition * BUFFER_SIZE);
             channel.read(buffer);
             buffer.flip();

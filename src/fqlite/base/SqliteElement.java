@@ -93,6 +93,8 @@ public class SqliteElement {
 	}
 
 	final static int decodeInt16(byte[] v) {
+	    if (v.length < 2)
+	        return 0;
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		return bf.getShort();
 	}
@@ -103,14 +105,20 @@ public class SqliteElement {
 	}
 
 	private static int int24bytesToUInt(byte[] input) {
-
-		if (input.length < 3)
-			return (0 & 0xFF << 24) | (0 & 0xFF) << 16 | (input[0] & 0xFF) << 8 | (input[1] & 0xFF) << 0;
+	    if (input.length == 0)
+	        return 0;
+		if (input.length == 1)
+            return (0 & 0xFF << 24) | (0 & 0xFF) << 16 | (0 & 0xFF) << 8 | (input[0] & 0xFF) << 0;
+		if (input.length == 2)
+            return (0 & 0xFF << 24) | (0 & 0xFF) << 16 | (input[0] & 0xFF) << 8 | (input[1] & 0xFF) << 0;
 
 		return (0 & 0xFF << 24) | (input[0] & 0xFF) << 16 | (input[1] & 0xFF) << 8 | (input[2] & 0xFF) << 0;
 	}
 
 	final static int decodeInt32(byte[] v) {
+	    if (v.length < 4) {
+	        return 0;
+	    }
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		return bf.getInt();
 	}
@@ -134,6 +142,8 @@ public class SqliteElement {
 	}
 
 	final static long decodeInt64(byte[] v) {
+	    if (v.length < 8)
+	        return 0;
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		return bf.getLong();
 	}
@@ -145,6 +155,8 @@ public class SqliteElement {
 	}
 
 	final static double decodeFloat64(byte[] v) {
+	    if (v.length < 8)
+	        return Double.NaN;
 		ByteBuffer bf = ByteBuffer.wrap(v);
 		
 		return bf.getDouble();

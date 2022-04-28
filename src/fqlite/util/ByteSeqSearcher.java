@@ -43,7 +43,7 @@ public class ByteSeqSearcher{
 		 * @return the position of the next occurrence of the pattern or -1 if not found
 	     * @throws IOException if an I/O error occurs
 	     */
-	     public long indexOf(RandomAccessFileReader file, long start) throws IOException
+	     public long indexOf(LongPositionByteBuffer file, long start) throws IOException
 	     {
 	         file.position(start);
 	         return indexOf(file);
@@ -60,7 +60,7 @@ public class ByteSeqSearcher{
 	     * @return bytes consumed if found, -1 otherwise.
 		 * @throws IOException if an I/O error occurs
 	     */
-	    public long indexOf(RandomAccessFileReader file) throws IOException
+	    public long indexOf(LongPositionByteBuffer file) throws IOException
 	    {
 	    	//int size = buffer.capacity() - buffer.position();
 	        

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -35,8 +35,6 @@ import fqlite.util.Logger;
  * @version 1.0
  *
  */
-
-@SuppressWarnings("deprecation")
 public class SimpleSQLiteParser extends Base {
 
 	/* determine data type */
@@ -153,7 +151,7 @@ public class SimpleSQLiteParser extends Base {
 		modulname = null;
 		
 		// Create a lexer and parser for the input.
-        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(CharStreams.fromString(stmt));
         lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
         parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
@@ -230,7 +228,7 @@ public class SimpleSQLiteParser extends Base {
 	{
 		column = 0;
 	    // Create a lexer and parser for the input.
-        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(CharStreams.fromString(stmt));
         lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
         parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
@@ -301,7 +299,7 @@ public class SimpleSQLiteParser extends Base {
 		column = 0;
 		
 	    // Create a lexer and parser for the input.
-        SQLiteLexer lexer = new SQLiteLexer(new ANTLRInputStream(stmt));
+        SQLiteLexer lexer = new SQLiteLexer(CharStreams.fromString(stmt));
         lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
         SQLiteParser parser = new SQLiteParser(new CommonTokenStream(lexer));
         parser.removeErrorListener(ConsoleErrorListener.INSTANCE);

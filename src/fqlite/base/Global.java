@@ -12,6 +12,6 @@ public class Global {
     public static final int CARVING_ERROR = -1;
     public static boolean CONVERT_DATETIME = true; // Weather to convert datetime or not
     public static int LOGLEVEL = Base.ERROR;
-    public static int numberofThreads = 1;
-    public static final int MAX_BUFFER_SIZE = 64 * 4096;
+    public static int numberofThreads = Runtime.getRuntime().availableProcessors();
+    public static final int MAX_BUFFER_SIZE = 16 * 65536;
 }

@@ -146,7 +146,7 @@ public abstract class WALReaderBase extends Base {
 		try {
 			file = new RandomAccessFileReader(p);
 		} catch (Exception e) {
-            this.err("Cannot open WAL-file" + p.getFileName());
+            err("Cannot open WAL-file", p.getFileName());
 			return;
 		}
 
@@ -204,7 +204,7 @@ public abstract class WALReaderBase extends Base {
 		buffer.position(4);
 		
 		ffversion = buffer.getInt();
-		info(" file format version " + ffversion);
+		info(" file format version ", ffversion);
 		
 		ps = buffer.getInt();
 
@@ -220,7 +220,7 @@ public abstract class WALReaderBase extends Base {
 		if (ps == 0 || ps == 1)
 			ps = 65536;
 
-		info("page size " + ps + " Bytes ");
+		info("page size ", ps, " Bytes ");
 
 		
 	
@@ -228,32 +228,32 @@ public abstract class WALReaderBase extends Base {
 		 * Offset 12 Size 4 Checkpoint sequence number 
 		 */
 		csn = buffer.getInt();
-		info(" checkpoint sequence number " + csn);
+		info(" checkpoint sequence number ", csn);
 
 	
 		/*
 		 * Offset 16 Size 4 Salt-1: random integer incremented with each checkpoint 
 		 */
 		hsalt1 = Integer.toUnsignedLong(buffer.getInt());
-		info(" salt1 " + hsalt1);
+		info(" salt1 ", hsalt1);
 
 		
 		/*
 		 * Offset 20 Size 4 Salt-2: Salt-2: a different random number for each checkpoint 
 		 */
 		hsalt2 = Integer.toUnsignedLong(buffer.getInt());
-		info(" salt2 " + hsalt2);
+		info(" salt2 ", hsalt2);
 
 		
 		/* Offset 24 Checksum-1: First part of a checksum on the first 24 bytes of header */
 		hchecksum1 = Integer.toUnsignedLong(buffer.getInt());
-		info(" checksum-1 of first frame header " + hchecksum1);
+		info(" checksum-1 of first frame header ", hchecksum1);
 
 		
 		
 		/* Offset 28 Checksum-2: Second part of the checksum on the first 24 bytes of header  */
 		hchecksum2 = Integer.toUnsignedLong(buffer.getInt());
-		info(" checksum-2 second part ot the checksum on the first frame header " + hchecksum2);
+		info(" checksum-2 second part ot the checksum on the first frame header ", hchecksum2);
 
 		
 		/* initialize the BitSet for already visited location within a wal-page */
@@ -309,10 +309,10 @@ public abstract class WALReaderBase extends Base {
 				info(" No commit so far. this frame holds the latest! version of the page ");
 			
 			long fsalt1 = Integer.toUnsignedLong(fheader.getInt());
-			info("fsalt1 " + fsalt1);
+			info("fsalt1 ", fsalt1);
 			
 			long fsalt2 = Integer.toUnsignedLong(fheader.getInt());
-			info("fsalt2" + fsalt2);
+			info("fsalt2", fsalt2);
 			
 			/* A frame is considered valid if and only if the following conditions are true:
 			 * 
@@ -329,7 +329,7 @@ public abstract class WALReaderBase extends Base {
 			}	
 				
 	
-			debug("pagenumber of frame in main db " + pagenumber_maindb);
+			debug("pagenumber of frame in main db ", pagenumber_maindb);
 			
 	
 			/* now we can read the page - it follows immediately after the frame header */
@@ -364,11 +364,11 @@ public abstract class WALReaderBase extends Base {
 			
 		}while(next);
 
-		info("Lines after WAL-file recovery: " + output.size());
-		info("Number of pages in WAL-file" + numberofpages);
+		info("Lines after WAL-file recovery: ", output.size());
+		info("Number of pages in WAL-file", numberofpages);
 	
 		
-		info("Checkpoints " + checkpoints.toString());
+		info("Checkpoints ", checkpoints);
 	}
 	
 	private WALFrame updateCheckpoint(int pagenumber, int framenumber,long salt1, long salt2, boolean committed){
@@ -403,14 +403,15 @@ public abstract class WALReaderBase extends Base {
 		
 		withoutROWID = false;
 
-		/* convert byte array into a string representation */
-		String content = Auxiliary.bytesToHex(buffer);
+		buffer.position(0);
+		byte pageType = buffer.get();
+		buffer.get(pageType);
 
 		// offset 0
 		buffer.position(0);
 
-		/* check type of the page by reading the first two bytes */
-		int type = Auxiliary.getPageType(content);
+		/* check type of the page by reading the first bytes */
+		int type = Auxiliary.getPageType(pageType);
 
 		/* mark bytes as visited */
 		visit.set(0, 2);
@@ -439,7 +440,7 @@ public abstract class WALReaderBase extends Base {
 			if (checksum == 0) {
 				info(" DROPPED PAGE !!!");
 				/* no overflow page -> carve for data records - we do our best! ;-) */
-				carve(content, null);
+				carve(null);
 			}
 			/*
 			 * otherwise it seems to be a overflow page - however, that is not 100% save !!!
@@ -453,18 +454,17 @@ public abstract class WALReaderBase extends Base {
 
 		// no leaf page -> skip this page
 		if (type < 0) {
-			info("No Data page. " + pagenumber_wal);
+			info("No Data page. ", pagenumber_wal);
 			return -1;
 		} else if (type == 12) {
-			info("Internal Table page " + pagenumber_wal);
+			info("Internal Table page ", pagenumber_wal);
 			return -1;
 		} else if (type == 10) {
-			info("Index leaf page " + pagenumber_wal);
+			info("Index leaf page ", pagenumber_wal);
 			// note: WITHOUT ROWID tables are saved here.
 			withoutROWID = true;
 		} else {
-			info("Data page " + pagenumber_wal + " Offset: " + (file.position()));
-
+			info("Data page ", pagenumber_wal, " Offset: ", (file.position()));
 		}
 
 		/************** regular leaf page with data ******************/
@@ -500,14 +500,14 @@ public abstract class WALReaderBase extends Base {
 		ByteBuffer size = ByteBuffer.wrap(cpn);
 		int cp = Auxiliary.TwoByteBuffertoInt(size);
 
-		debug(" number of cells: " + cp + " type of page " + type);
+		debug(" number of cells: ", cp, " type of page ", type);
 		job.numberofcells.addAndGet(cp);
 		if (0 == cp)
 			debug(" Page seems to be dropped. No cell entries.");
 
 		int headerend = 8 + (cp * 2);
 		visit.set(0, headerend);
-		info("headerend:" + headerend);
+		info("headerend:", headerend);
 
 		/***************************************************************
 		 * STEP 2:
@@ -536,14 +536,12 @@ public abstract class WALReaderBase extends Base {
 				}
 			}
 			last = celloff;
-			String hls = Auxiliary.Int2Hex(celloff); 
-			hls.trim();
 			
 			SqliteRow row = null;
 			
 
 			try { 
-				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24, job.db_encoding);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID,framestart+24);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -697,7 +695,7 @@ public abstract class WALReaderBase extends Base {
 			
 			/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 			/* We should read until the end of the unallocated area and not above! */
-			row = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1, job.db_encoding);
+			row = ct.readRecord(buffer.position(), buffer, ps, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
 			
 			// add new line to output
 			if (null != row) { // && rc.length() > 0) {
@@ -723,7 +721,7 @@ public abstract class WALReaderBase extends Base {
 		 ***************************************************************/
 		
 		/* now we are ready to carve the rest of the page */
-		carve(content,null);
+		carve(null);
 		
 	} catch (Exception err) {
 		err.printStackTrace();
@@ -767,18 +765,17 @@ public abstract class WALReaderBase extends Base {
 	 * This method is called to carve a data page for records.
 	 * 
 	 * @param buffer the buffer
-	 * @param content page content as hex-string
 	 * @param crv the Carver object
 	 */
-	public void carve(ByteBuffer buffer, String content, Carver crv) {
+	public void carve(ByteBuffer buffer, Carver crv) {
 
 		Carver c = crv;
 
 		if (null == c)
-			/* no type could be found in the first two bytes */
+			/* no type could be found in the first byte */
 			/* Maybe the whole page was drop because of a drop component command ? */
 			/* start carving on the complete page */
-			c = new Carver(job, buffer, content, visit, ps);
+			c = new Carver(job, buffer, visit, ps);
 
 		// Matcher mat = null;
 		// boolean match = false;
@@ -792,7 +789,7 @@ public abstract class WALReaderBase extends Base {
 		}
 
 		List<TableDescriptor> tab = tables;
-		debug(" tables :: " + tables.size());
+		debug(" tables :: ", tables.size());
 
 		if (null != tdesc) {
 			/* there is a schema for this page */
@@ -800,7 +797,7 @@ public abstract class WALReaderBase extends Base {
 			tab.add(tdesc);
 			debug(" added tdsec ");
 		} else {
-			warning(" No component description!" + content);
+			warning(" No component description!");
 			tab = tables;
 		}
 
@@ -813,13 +810,13 @@ public abstract class WALReaderBase extends Base {
 		/* try out all component schema(s) */
 		for (int n = 0; n < tab.size(); n++) {
 			tdesc = tab.get(n);
-			debug("pagenumber :: " + pagenumber_maindb + " component size :: " + tab.size());
-			debug("n " + n);
+			debug("pagenumber :: ", pagenumber_maindb, " component size :: ", tab.size());
+			debug("n ", n);
 			// TableDescriptor tdb = tab.get(n);
 
 			/* access pattern for a particular component */
 			String tablename = tab.get(n).tblname;
-			debug("WALReader 713 Check component : " + tablename);
+			debug("WALReader 713 Check component : ", tablename);
 			if (tablename.startsWith("__UNASSIGNED"))
 				continue;
 			/* create matcher object for constrain check */
@@ -968,18 +965,17 @@ public abstract class WALReaderBase extends Base {
 	/**
 	 * This method is called to carve a data page for records.
 	 * 
-	 * @param content page content as hex-string
 	 * @param crv the Carver object
 	 */
-	public void carve(String content, Carver crv) {
+	public void carve(Carver crv) {
 
 		Carver c = crv;
 
 		if (null == c)
-			/* no type could be found in the first two bytes */
+			/* no type could be found in the first byte */
 			/* Maybe the whole page was drop because of a drop component command ? */
 			/* start carving on the complete page */
-			c = new Carver(job, buffer, content, visit, pagenumber_maindb);
+			c = new Carver(job, buffer, visit, pagenumber_maindb);
 
 		// Matcher mat = null;
 		// boolean match = false;
@@ -993,7 +989,7 @@ public abstract class WALReaderBase extends Base {
 		}
 
 		List<TableDescriptor> tab = tables;
-		debug(" tables :: " + tables.size());
+		debug(" tables :: ", tables.size());
 
 		if (null != tdesc) {
 			/* there is a schema for this page */
@@ -1014,13 +1010,13 @@ public abstract class WALReaderBase extends Base {
 		/* try out all component schema(s) */
 		for (int n = 0; n < tab.size(); n++) {
 			tdesc = tab.get(n);
-			debug("pagenumber :: " + pagenumber_maindb + " component size :: " + tab.size());
-			debug("n " + n);
+			debug("pagenumber :: ", pagenumber_maindb, " component size :: ", tab.size());
+			debug("n ", n);
 			// TableDescriptor tdb = tab.get(n);
 
 			/* access pattern for a particular component */
 			String tablename = tab.get(n).tblname;
-			debug("Check component : " + tablename);
+			debug("Check component : ", tablename);
 			if (tablename.startsWith("__UNASSIGNED"))
 				continue;
 			/* create matcher object for constrain check */

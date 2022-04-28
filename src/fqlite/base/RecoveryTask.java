@@ -11,7 +11,6 @@ import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
 import fqlite.util.Auxiliary;
-import fqlite.util.Logger;
 
 /**
  * This class represents a recovery task. 
@@ -21,7 +20,7 @@ import fqlite.util.Logger;
  * @author pawlaszc
  *
  */
-public class RecoveryTask extends Base {
+public class RecoveryTask extends Base implements Runnable {
 
 	public int pagesize;
 	public long offset;
@@ -67,6 +66,7 @@ public class RecoveryTask extends Base {
 	 * This method called to recover regular data records startRegion a database page.
 	 * 
 	 * @return 0 if successful, -1 otherwise.
+	 * @throws IOException io exception
 	 */
 	public int recover() throws IOException {
 
@@ -74,17 +74,16 @@ public class RecoveryTask extends Base {
 		
 		try {
 			
-			debug("Offset in recover()::" + offset);
+			debug("Offset in recover()::", offset);
 			/* read the db page into buffer */
 			buffer = job.readPageWithOffset(offset, pagesize);
-			/* convert byte array into a string representation */
-			String content = Auxiliary.bytesToHex(buffer);
+			byte pageType = buffer.get();
 
 			// offset 0
 			buffer.position(0);
 
-			/* check type of the page by reading the first two bytes */
-			int type = Auxiliary.getPageType(content);
+			/* check type of the page by reading the first byte */
+			int type = Auxiliary.getPageType(pageType);
 
 			/* mark bytes as visited */
 			visit.set(0, 2);
@@ -114,7 +113,7 @@ public class RecoveryTask extends Base {
 				{
 					info(" DROPPED PAGE !!!");
 					/* no overflow page -> carve for data records - we do our best! ;-)*/
-					carve(content,null);
+					carve(null);
 				}
 				/* otherwise it seems to be a overflow page - however, that is not 100% save !!! */
 				
@@ -126,17 +125,17 @@ public class RecoveryTask extends Base {
 
 			// no leaf page -> skip this page
 			if (type < 0) {
-				info("No Data page. " + pagenumber);
+				info("No Data page. ", pagenumber);
 				return -1;
 			} else if (type == 12) {
-				info("Internal Table page " + pagenumber);
+				info("Internal Table page ", pagenumber);
 				return -1;
 			} else if (type == 10) {
-				info("Index leaf page " + pagenumber);	
+				info("Index leaf page ", pagenumber);	
 				// note: WITHOUT ROWID tables are saved here.
 				withoutROWID=true;
 			} else {
-				info("Data page " + pagenumber + " Offset: " + offset);
+				info("Data page ", pagenumber, " Offset: ", offset);
 
 			}
 
@@ -181,7 +180,7 @@ public class RecoveryTask extends Base {
 			ByteBuffer size = ByteBuffer.wrap(cpn);
 			int cp = Auxiliary.TwoByteBuffertoInt(size);
 
-			debug(" number of cells: " + cp + " type of page " +  type);
+			debug(" number of cells: ", cp, " type of page ",  type);
 			job.numberofcells.addAndGet(cp);
 			if (0 == cp)
 				debug(" Page seems to be dropped. No cell entries.");
@@ -217,15 +216,10 @@ public class RecoveryTask extends Base {
 					}
 				}
 				last = celloff;
-				//if (Logger.LOGLEVEL == Logger.DEBUG)
-				//{	
-					String hls = Auxiliary.Int2Hex(celloff); // Integer.toHexString(celloff);
-					Logger.out.debug(pagenumber + " -> " + celloff + " " + "0" + hls);
-				//}
 					
 				SqliteRow row;
 				
-				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1, job.db_encoding);
+				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
 								
 				// add new line to output
 				if (null != row) {
@@ -372,7 +366,7 @@ public class RecoveryTask extends Base {
 				
 				/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 				/* We should read until the end of the unallocated area and not above! */
-				row = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1, job.db_encoding);
+				row = ct.readRecord(buffer.position(), buffer, pagenumber, visit, type, ccrstart - buffer.position(),firstcol,withoutROWID,-1);
 				
 				// add new line to output
 				if (null != row) { // && rc.length() > 0) {
@@ -397,7 +391,7 @@ public class RecoveryTask extends Base {
 			 ***************************************************************/
 			
 			/* now we are ready to carve the rest of the page */
-			carve(content,null);
+			carve(null);
 			
 		} catch (IOException err) {
 			throw err;
@@ -462,8 +456,8 @@ public class RecoveryTask extends Base {
 					else {
 						Gap g = new Gap(from, to);
 						if (!gaps.contains(g))
-						debug("ohne match : " + (job.ps * (pagenumber - 1) + from) + " - "
-								+ (job.ps * (pagenumber - 1) + to) + " Bytes");
+						debug("ohne match : ", (job.ps * (pagenumber - 1) + from), " - ",
+								(job.ps * (pagenumber - 1) + to), " Bytes");
 						gaps.add(g);
 					}
 				}
@@ -480,18 +474,17 @@ public class RecoveryTask extends Base {
 	/**
 	 * This method is called to carve a data page for records.
 	 * 
-	 * @param content page content as hex-string
 	 * @param crv the carver
 	 */
-	public void carve(String content, Carver crv) {
+	public void carve(Carver crv) {
 
 		Carver c = crv;
 		
 		if (null == c)
-			/* no type could be found in the first two bytes */
+			/* no type could be found in the first byte */
 			/* Maybe the whole page was drop because of a drop component command ? */
 			/* start carving on the complete page */
-			c = new Carver(job, buffer, content, visit, pagenumber);
+			c = new Carver(job, buffer, visit, pagenumber);
 
 		//Matcher mat = null;
 		// boolean match = false;
@@ -505,8 +498,8 @@ public class RecoveryTask extends Base {
 					tdesc = (TableDescriptor)ad;
 		}
 			
-		List<TableDescriptor> tab = tables;
-		debug(" tables :: " + tables.size());
+		List<TableDescriptor> tab;
+		debug(" tables :: ", tables.size());
 
 		if (null != tdesc) {
 			/* there is a schema for this page */
@@ -520,7 +513,7 @@ public class RecoveryTask extends Base {
 		
 		List<Gap> gaps = findGaps();
 
-		info("gaps.size()" + gaps.size());
+		info("gaps.size()", gaps.size());
 		if (gaps.size() == 0)
 		{
 			debug("no gaps anymore. Stopp search");
@@ -530,7 +523,7 @@ public class RecoveryTask extends Base {
 		/* try out all component schema(s) */
 		for (int n = 0; n < tab.size(); n++) {
 			tdesc = tab.get(n);
-			debug("pagenumber :: " + pagenumber + " component size :: " + tab.size());
+			debug("pagenumber :: ", pagenumber, " component size :: ", tab.size());
 			debug("n " + n);
 			//TableDescriptor tdb = tab.get(n);
 		
@@ -627,7 +620,16 @@ public class RecoveryTask extends Base {
 
 	}
 
-	public void run() throws IOException {
+	@Override
+	public void run() {
+		try {
+			runSingleThread();
+		} catch (Exception e) {
+			err("Error in RecoveryTask: ", e);
+		}
+	}
+
+	public void runSingleThread() throws IOException {
 		
 		try
 		{
@@ -643,12 +645,6 @@ public class RecoveryTask extends Base {
 		
 		
 	}
-
-    
-
-	
-
-
 }
 
 

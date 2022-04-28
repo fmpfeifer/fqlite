@@ -24,8 +24,6 @@ public class Carver extends Base {
 
 	BitSet bs;
 
-	String content;
-
 	Job job;
 
 	int pagenumber;
@@ -35,15 +33,13 @@ public class Carver extends Base {
 	 * 
 	 * @param job    reference to the calling job object
 	 * @param bl         a ByteBuffer representing the binary page content
-	 * @param content    the String representation of the page content
 	 * @param bs         a BitSet to mark places
 	 * @param pagenumber the number of the page within the database.
 	 */
-	public Carver(Job job, ByteBuffer bl, String content, BitSet bs, int pagenumber) {
+	public Carver(Job job, ByteBuffer bl, BitSet bs, int pagenumber) {
 		this.job = job;
 		block = bl;
 		this.bs = bs;
-		this.content = content;
 		this.pagenumber = pagenumber;
 	}
 
@@ -110,13 +106,13 @@ public class Carver extends Base {
 			 */
 			int end = mat.end();
 
-			debug("Match (0..NORMAL, 1..NOLENGTH, 2..FIRSTCOLMISSING) : " + headertype);
-			debug("found " + m);
-			debug("Match: " + m + " on pos:" + ((pagenumber - 1) * job.ps + from));
+			debug("Match (0..NORMAL, 1..NOLENGTH, 2..FIRSTCOLMISSING) : ", headertype);
+			debug("found ", m);
+			debug("Match: ", m, " on pos:", ((pagenumber - 1) * job.ps + from));
 			
 			boolean missing = false;
 			if (headertype == CarverTypes.NORMAL) {
-			    if (firstcol.length() >= 4 && m.length() >= 4) {
+			    if (m.length() >= 4) {
 			        firstcol.insert(0,m.substring(2, 4));
 			    } else {
 			        missing = true;
@@ -132,7 +128,7 @@ public class Carver extends Base {
 			}
 
 			if (headertype == CarverTypes.FIRSTCOLUMNMISSING || missing) {
-				if (null != firstcol && firstcol.length()>2 && !firstcol.subSequence(0,2).equals("00")) {
+				if (null != firstcol && firstcol.length()>=2 && !firstcol.subSequence(0,2).equals("00")) {
 					m = firstcol.substring(0,2) + m; 
 		
 				} 
@@ -177,7 +173,7 @@ public class Carver extends Base {
 					}
 
 				} catch (Exception err) {
-					warning("Could not read record" + err.toString());
+					warning("Could not read record", err);
 					return -1;
 				}
 			}

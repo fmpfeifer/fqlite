@@ -15,7 +15,6 @@ import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.SerialTypeMatcher;
 import fqlite.types.CarverTypes;
 import fqlite.util.Auxiliary;
-import fqlite.util.Logger;
 import fqlite.util.RandomAccessFileReader;
 
 /**
@@ -115,7 +114,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 		try {
 			file = new RandomAccessFileReader(p);
 		} catch (Exception e) {
-            this.err("Cannot open RollbackJournal-file" + p.getFileName());
+            err("Cannot open RollbackJournal-file", p.getFileName());
 			return;
 		}
 
@@ -168,19 +167,19 @@ public abstract class RollbackJournalReaderBase extends Base {
 		}
 		
 		pagecount = Integer.toUnsignedLong(header.getInt());
-		info(" pagecount " + pagecount);
+		info(" pagecount ", pagecount);
 
 		nounce = Integer.toUnsignedLong(header.getInt());
-		info(" nounce " + nounce);
+		info(" nounce ", nounce);
 
 		pages = Integer.toUnsignedLong(header.getInt());
-		info(" pages " + pages);
+		info(" pages ", pages);
 		
 		sectorsize = Integer.toUnsignedLong(header.getInt());
-		info(" sector size  " + sectorsize);
+		info(" sector size  ", sectorsize);
 		
 		journalpagesize = Integer.toUnsignedLong(header.getInt());
-		info(" journal page size  " + journalpagesize);
+		info(" journal page size  ", journalpagesize);
 
 		
 	    journalpointer = 512; // this is the position, where the first frame should be
@@ -200,7 +199,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			/* get the page number of the journal page in main db */
 			
 		    pagenumber_maindb = file.allocateAndReadBuffer(4).getInt();
-			debug("pagenumber of journal-entry " + pagenumber_maindb);
+			debug("pagenumber of journal-entry ", pagenumber_maindb);
 			
 	
 			/* now we can read the page - it follows immediately after the frame header */
@@ -228,8 +227,8 @@ public abstract class RollbackJournalReaderBase extends Base {
 			
 		}while(next);
 
-		info("Lines after RollbackJournal-file recovery: " + output.size());
-		info("Number of pages in RollbackJournal-file" + numberofpages);
+		info("Lines after RollbackJournal-file recovery: ", output.size());
+		info("Number of pages in RollbackJournal-file", numberofpages);
 	
 	}
 
@@ -242,14 +241,14 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 		withoutROWID = false;
 		
-		/* convert byte array into a string representation */
-		String content = Auxiliary.bytesToHex(buffer);
+		byte pageType = buffer.get();
+		buffer.get(pageType);
 
 		// offset 0
 		buffer.position(0);
 
-		/* check type of the page by reading the first two bytes */
-		int type = Auxiliary.getPageType(content);
+		/* check type of the page by reading the first byte */
+		int type = Auxiliary.getPageType(pageType);
 
 		/* mark bytes as visited */
 		visit.set(0, 2);
@@ -278,7 +277,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			if (checksum == 0) {
 				info(" DROPPED PAGE !!!");
 				/* no overflow page -> carve for data records - we do our best! ;-) */
-				carve(content, null);
+				carve(null);
 			}
 			/*
 			 * otherwise it seems to be a overflow page - however, that is not 100% save !!!
@@ -292,17 +291,17 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 		// no leaf page -> skip this page
 		if (type < 0) {
-			info("No Data page. " + pagenumber_rol);
+			info("No Data page. ", pagenumber_rol);
 			return -1;
 		} else if (type == 12) {
-			info("Internal Table page " + pagenumber_rol);
+			info("Internal Table page ", pagenumber_rol);
 			return -1;
 		} else if (type == 10) {
-			info("Index leaf page " + pagenumber_rol);
+			info("Index leaf page ", pagenumber_rol);
 			withoutROWID = true;
 
 		} else {
-			info("Data page " + pagenumber_rol+ " Offset: " + (file.position() - ps));
+			info("Data page ", pagenumber_rol, " Offset: ", (file.position() - ps));
 		}
 
 		/************** regular leaf page with data ******************/
@@ -338,7 +337,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 		ByteBuffer size = ByteBuffer.wrap(cpn);
 		int cp = Auxiliary.TwoByteBuffertoInt(size);
 
-		debug(" number of cells: " + cp + " type of page " + type);
+		debug(" number of cells: ", cp, " type of page ", type);
 		job.numberofcells.addAndGet(cp);
 		if (0 == cp)
 			debug(" Page seems to be dropped. No cell entries.");
@@ -374,17 +373,11 @@ public abstract class RollbackJournalReaderBase extends Base {
 				}
 			}
 			last = celloff;
-			//if (Logger.LOGLEVEL == Logger.DEBUG) {
-				String hls = Auxiliary.Int2Hex(celloff); 
-				//Integer.toHexString(celloff);
-				Logger.out.debug(pagenumber_rol + " -> " + celloff + " " + "0" + hls);
-			//}
-			hls.trim();
 			
 			SqliteRow row = null;
 
 			try {
-				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4, job.db_encoding);
+				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -510,18 +503,17 @@ public abstract class RollbackJournalReaderBase extends Base {
 	 * This method is called to carve a data page for records.
 	 * 
 	 * @param buffer the buffer
-	 * @param content page content as hex-string
 	 * @param crv Carver object
 	 */
-	public void carve(ByteBuffer buffer, String content, Carver crv) {
+	public void carve(ByteBuffer buffer, Carver crv) {
 
 		Carver c = crv;
 
 		if (null == c)
-			/* no type could be found in the first two bytes */
+			/* no type could be found in the first byte */
 			/* Maybe the whole page was drop because of a drop component command ? */
 			/* start carving on the complete page */
-			c = new Carver(job, buffer, content, visit, ps);
+			c = new Carver(job, buffer, visit, ps);
 
 		// Matcher mat = null;
 		// boolean match = false;
@@ -535,7 +527,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 		}
 
 		List<TableDescriptor> tab = tables;
-		debug(" tables :: " + tables.size());
+		debug(" tables :: ", tables.size());
 
 		if (null != tdesc) {
 			/* there is a schema for this page */
@@ -556,8 +548,8 @@ public abstract class RollbackJournalReaderBase extends Base {
 		/* try out all component schema(s) */
 		for (int n = 0; n < tab.size(); n++) {
 			tdesc = tab.get(n);
-			debug("pagenumber :: " + pagenumber_maindb + " component size :: " + tab.size());
-			debug("n " + n);
+			debug("pagenumber :: ", pagenumber_maindb, " component size :: ", tab.size());
+			debug("n ", n);
 			// TableDescriptor tdb = tab.get(n);
 
 			/* access pattern for a particular component */
@@ -707,18 +699,17 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/**
 	 * This method is called to carve a data page for records.
 	 * 
-	 * @param content page content as hex-string
 	 * @param crv the Carver object
 	 */
-	public void carve(String content, Carver crv) {
+	public void carve(Carver crv) {
 
 		Carver c = crv;
 
 		if (null == c)
-			/* no type could be found in the first two bytes */
+			/* no type could be found in the first byte */
 			/* Maybe the whole page was drop because of a drop component command ? */
 			/* start carving on the complete page */
-			c = new Carver(job, buffer, content, visit, pagenumber_maindb);
+			c = new Carver(job, buffer, visit, pagenumber_maindb);
 
 		// Matcher mat = null;
 		// boolean match = false;
@@ -732,7 +723,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 		}
 
 		List<TableDescriptor> tab = tables;
-		debug(" tables :: " + tables.size());
+		debug(" tables :: ", tables.size());
 
 		if (null != tdesc) {
 			/* there is a schema for this page */
@@ -753,13 +744,13 @@ public abstract class RollbackJournalReaderBase extends Base {
 		/* try out all component schema(s) */
 		for (int n = 0; n < tab.size(); n++) {
 			tdesc = tab.get(n);
-			debug("pagenumber :: " + pagenumber_maindb + " component size :: " + tab.size());
-			debug("n " + n);
+			debug("pagenumber :: ", pagenumber_maindb, " component size :: ", tab.size());
+			debug("n ", n);
 			// TableDescriptor tdb = tab.get(n);
 
 			/* access pattern for a particular component */
 			String tablename = tab.get(n).tblname;
-			debug("Check component : " + tablename);
+			debug("Check component : ", tablename);
 			if (tablename.startsWith("__UNASSIGNED"))
 				continue;
 			/* create matcher object for constrain check */
