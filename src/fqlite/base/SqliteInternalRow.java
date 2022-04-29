@@ -148,4 +148,21 @@ public class SqliteInternalRow {
         return false;
     }
 
+    public SqliteRow decodeRow() {
+        SqliteRow result = new SqliteRow();
+        result.setTableName(tableName);
+        result.setDeletedRow(isDeletedRow());
+        result.setColumnNamesMap(colIdx);
+        Object [] data = new Object[rowData.size()];
+        for (int i = 0; i < data.length; i++) {
+            SqliteElementData d = rowData.get(i);
+            if (d != null) {
+                data[i] = d.getObject();
+            }
+        }
+        result.setRowData(data);
+        
+        return result;
+    }
+
 }

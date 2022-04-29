@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -124,6 +123,7 @@ public class Job extends Base {
 
 	/* since version 1.2 - support for write Rollback Journal files */
 	public boolean readRollbackJournal = false;
+	public boolean collectInternalRows = true;
 	String rollbackjournalpath = null;
 	RollbackJournalReaderBase rol = null;
 	
@@ -149,7 +149,7 @@ public class Job extends Base {
 	/* this is a multi-threaded program -> all data are saved to the list first*/
 	private Queue<SqliteInternalRow> ll = new ConcurrentLinkedQueue<>();
 
-	private Map<String, List<SqliteInternalRow>> tableRows = new LinkedHashMap<>();
+	private Map<String, List<SqliteRow>> tableRows = new LinkedHashMap<>();
 	
 	private Auxiliary aux = new Auxiliary(this);
 	
@@ -912,23 +912,25 @@ public class Job extends Base {
 			closeResources();
 		}
 
-		for (Entry<String, TableDescriptor> tableEntry : headers.entrySet()) {
-		    List<SqliteInternalRow> rows = tableRows.get(tableEntry.getKey());
-		    if (null != rows) {
-		        Map<String, Integer> colIdx = new HashMap<>();
-		        int id = 0;
-		        for (String col : tableEntry.getValue().columnnames) {
-		            colIdx.put(col, id++);
-		        }
-
-		        for (SqliteInternalRow row : rows) {
-		            row.setColumnNamesMap(colIdx);
-		        }
-		    }
-		}
-
-
 		return 0;
+	}
+	
+	private Map<String, Map<String, Integer>> colIdxMaps = new HashMap<>();
+	
+	private Map<String, Integer> getColIdxMapForTable(String tableName) {
+	    Map<String, Integer> colIdxMap = colIdxMaps.get(tableName);
+	    if (colIdxMap == null) {
+	        TableDescriptor td = headers.get(tableName);
+	        if (td != null) {
+	            colIdxMap = new HashMap<>();
+	            int id = 0;
+	            for (String col: td.columnnames) {
+	                colIdxMap.put(col, id++);
+	            }
+	            colIdxMaps.put(tableName, colIdxMap);
+	        }
+	    }
+	    return colIdxMap;
 	}
 
 	protected void closeResources() {
@@ -1382,26 +1384,30 @@ public class Job extends Base {
     }
 
     public synchronized void addRow(SqliteInternalRow row) {
+        row.setColumnNamesMap(getColIdxMapForTable(row.getTableName()));
 		if (recoverOnlyDeletedRecords) {
 			// only add rows that are marked as deleted
 			if (!row.isDeletedRow()) {
 				return;
 			}
 		}
-        ll.add(row);
-        List<SqliteInternalRow> tables = tableRows.get(row.getTableName());
+		if (collectInternalRows)
+		    ll.add(row);
+        List<SqliteRow> tables = tableRows.get(row.getTableName());
         if (null == tables) {
             tables = Collections.synchronizedList(new ArrayList<>());
             tableRows.put(row.getTableName(), tables);
         }
-        tables.add(row);
+        SqliteRow decoded = row.decodeRow();
+        decoded.setCharset(db_encoding);
+        tables.add(row.decodeRow());
     }
 
     public Queue<SqliteInternalRow> getRows() {
         return ll;
     }
 
-    public synchronized List<SqliteInternalRow> getRowsForTable(String tableName) {
+    public synchronized List<SqliteRow> getRowsForTable(String tableName) {
         return tableRows.getOrDefault(tableName, Collections.emptyList());
     }
 

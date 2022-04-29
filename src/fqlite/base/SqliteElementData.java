@@ -113,6 +113,9 @@ public class SqliteElementData {
     }
     
     public Object getObject() {
+        if (data == null) {
+            return null;
+        }
         if (data.length == 0 && column.type != SerialTypes.INT0 && column.type != SerialTypes.INT1) {
             return null;
         }
