@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
+import fqlite.types.SerialTypes;
 import fqlite.util.Auxiliary;
 import fqlite.util.BufferUtil;
 import fqlite.util.CarvingResult;
@@ -253,15 +254,35 @@ public class PageReader extends Base {
 			/* start reading the content */
 			for (SqliteElement en : columns) {
 				if (en == null) {
-					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
-				byte[] value = BufferUtil.allocateByteBuffer(en.length);
+				if (en.length == 0) {
+                    if (en.type == SerialTypes.INT0) {
+                        row.append(new SqliteElementData(en, 0));
+                    } else {
+                        row.append(new SqliteElementData(null, job.db_encoding));
+                    }
+                } else {
+                    int len = en.length;
+                    
+                    try {
+                        if (len>0) {
+                            byte[] value = BufferUtil.allocateByteBuffer(len);
+                            bf.get(value);
+                            row.append(new SqliteElementData(en, value));
+                        } else {
+                            row.append(new SqliteElementData(null, job.db_encoding)); 
+                        }
+                        
+                        //lineUTF.append(write(co, en, value));
 
-				bf.get(value);
-
-				row.append(new SqliteElementData(en, value));
+                    } catch (java.nio.BufferUnderflowException bue) {
+                        row.append(new SqliteElementData(null, job.db_encoding));
+                        err("readRecord():: overflow java.nio.BufferUnderflowException");
+                    }
+                }
+				
 
 				//co++;
 			}
@@ -275,7 +296,6 @@ public class PageReader extends Base {
 			for (SqliteElement en : columns) {
 
 				if (en == null) {
-					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 

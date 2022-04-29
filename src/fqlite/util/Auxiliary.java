@@ -295,7 +295,6 @@ public class Auxiliary extends Base {
 			/* start reading the content */
 			for (SqliteElement en : columns) {
 				if (en == null) {
-					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -317,7 +316,6 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 
 				if (en == null) {
-					row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
@@ -605,34 +603,42 @@ public class Auxiliary extends Base {
 			for (SqliteElement en : columns) {
 				if (en == null) {
 					//lineUTF.append(";NULL");
-				    row.append(new SqliteElementData(null, job.db_encoding));
+				    //row.append(new SqliteElementData(null, job.db_encoding));
 					continue;
 				}
 
-				if (!withoutROWID)
-					checkROWID(co, en, rowid, row);
+				if (!withoutROWID && co == 0 && en.length == 0) {
+				    row.append(new SqliteElementData(en, rowid));
+				} else if (en.length == 0) {
+				    if (en.type == SerialTypes.INT0) {
+				        row.append(new SqliteElementData(en, 0));
+				    } else {
+				        row.append(new SqliteElementData(null, job.db_encoding));
+				    }
+				} else {
+				    int len = en.length;
+				    
 
-				if (en.length > 0) {
-
-				    byte[] value = BufferUtil.allocateByteBuffer(en.length);
-
-				    if ((bf.limit() - bf.position()) < value.length) {
-				        info(" Bufferunderflow ", (bf.limit() - bf.position()), " is lower than", value.length);
+				    if ((bf.limit() - bf.position()) < len) {
+				        info(" Bufferunderflow ", (bf.limit() - bf.position()), " is lower than", len);
+				        len = bf.limit() - bf.position();
 				    }
 
 				    try {
-				        if(value.length>0) {
+				        if (len>0) {
+				            byte[] value = BufferUtil.allocateByteBuffer(len);
 	                        bf.get(value);
+	                        row.append(new SqliteElementData(en, value));
+				        } else {
+				            row.append(new SqliteElementData(null, job.db_encoding)); 
 				        }
-				        row.append(new SqliteElementData(en, value));
+				        
 				        //lineUTF.append(write(co, en, value));
 
 				    } catch (java.nio.BufferUnderflowException bue) {
 						row.append(new SqliteElementData(null, job.db_encoding));
     					err("readRecord():: overflow java.nio.BufferUnderflowException");
     				}
-				} else {
-					row.append(new SqliteElementData(null, job.db_encoding));
 				}
 
 				co++;
@@ -662,33 +668,36 @@ public class Auxiliary extends Base {
 					continue;
 				}
 
-				if (!withoutROWID)
-					checkROWID(co, en, rowid, row);
+				if (!withoutROWID && co == 0 && en.length == 0) {
+                    row.append(new SqliteElementData(en, rowid));
+                } else if (en.length == 0) {
+                    if (en.type == SerialTypes.INT0) {
+                        row.append(new SqliteElementData(en, 0));
+                    } else {
+                        row.append(new SqliteElementData(null, job.db_encoding));
+                    }
+                } else {
 
-				byte[] value = null;
-				if (maxlength >= en.length)
-					value = BufferUtil.allocateByteBuffer(en.length);
-				else if (maxlength > 0)
-					value = BufferUtil.allocateByteBuffer(maxlength);
-				maxlength -= en.length;
-
-				if (null == value)
-					break;
-
-				try {
-					buffer.get(value);
-				} catch (BufferUnderflowException err) {
-					info("readRecord():: no overflow ERROR ", err);
-					// err.printStackTrace();
-					return null;
-				}
-
-				//lineUTF.append(write(co, en, value));
-				if (en.length > 0 || co > 0) {
-				    row.append(new SqliteElementData(en, value));
-				} else {
-					row.append(new SqliteElementData(null, job.db_encoding));
-				}
+    				byte[] value = null;
+    				if (maxlength >= en.length)
+    					value = BufferUtil.allocateByteBuffer(en.length);
+    				else if (maxlength > 0)
+    					value = BufferUtil.allocateByteBuffer(maxlength);
+    				maxlength -= en.length;
+    
+    				if (null == value)
+    					break;
+    
+    				try {
+    					buffer.get(value);
+    				} catch (BufferUnderflowException err) {
+    					info("readRecord():: no overflow ERROR ", err);
+    					// err.printStackTrace();
+    					return null;
+    				}
+    
+   				    row.append(new SqliteElementData(en, value));
+                }
 
 				co++;
 
@@ -1149,27 +1158,7 @@ public class Auxiliary extends Base {
         
         return ByteBuffer.wrap(ret).getInt();
     }
-
-	private void checkROWID(int co, SqliteElement en, long rowid, SqliteRow row) {
-		/* There is a ROWID column ? */
-		if (co == 0 && en.length == 0) {
-			/*
-			 * PRIMARY KEY COLUMN ALIASED ROWID From the SQLite documentation: rowid
-			 * component has a primary key that consists of a single column and the declared
-			 * type of that column is "INTEGER" in any mixture of upper and lower case, then
-			 * the column becomes an alias for the rowid. CREATE TABLE t(x INTEGER PRIMARY
-			 * KEY ASC, y, z); CREATE TABLE t(x INTEGER, y, z, PRIMARY KEY(x ASC)); CREATE
-			 * TABLE t(x INTEGER, y, z, PRIMARY KEY(x DESC));
-			 * 
-			 * Accordingly the first component column has length 0x00 and must be an INTEGER
-			 * -> take the rowid instead;
-			 */
-			//lineUTF.append(rowid);
-		    row.append(new SqliteElementData(en, rowid));
-			// System.out.println("PRIMARY KEY COLUMN ALIASED ROWID");
-		}
-	}
-
+    
 	/**
 	 * This method will create and assign a pattern object for matching header
 	 * information from a given index entry on binary level.

@@ -84,6 +84,13 @@ public class SqliteElementData {
     }
     
     public String getTextValue() {
+        if (column == null) {
+            if (data != null) {
+                return SqliteElement.decodeString(data, charset).toString();
+            } else {
+                return "";
+            }
+        }
         switch (column.type) {
             case STRING:
                 return SqliteElement.decodeString(data, charset).toString();
