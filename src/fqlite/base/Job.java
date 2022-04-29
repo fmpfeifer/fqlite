@@ -42,6 +42,7 @@ import fqlite.descriptor.TableDescriptor;
 import fqlite.parser.SQLiteSchemaParser;
 import fqlite.util.Auxiliary;
 import fqlite.util.ByteSeqSearcher;
+import fqlite.util.Logger;
 import fqlite.util.LongPositionByteBuffer;
 import fqlite.util.LongPositionByteBufferWrapper;
 import fqlite.util.RandomAccessFileReader;
@@ -880,6 +881,31 @@ public class Job extends Base {
 			scan(numberofpages, ps, recoveryTables);
 
 			/*******************************************************************/
+			
+			if (readRollbackJournal) {
+	            /* the readWAL option is enabled -> check the WAL-file too */
+	            Logger.out.info(" RollbackJournal-File ", this.rollbackjournalpath);
+	            rol = new RollbackJournalReaderBase(rollbackjournalpath, this) {
+                    @Override
+                    public void output() {                        
+                    }
+	            };
+	            rol.ps = this.ps;
+	            /* start parsing Rollbackjournal-file */
+	            rol.parse();
+	        }
+	        if (readWAL) {
+	            /* the readWAL option is enabled -> check the WAL-file too */
+	            Logger.out.info(" WAL-File ", walpath);
+	            wal = new WALReaderBase(walpath, this) {
+                    @Override
+                    public void output() {                        
+                    }
+                };
+	            /* start parsing WAL-file */
+	            wal.parse();
+	        }
+			
 			linesReady();
 
 		} finally {
