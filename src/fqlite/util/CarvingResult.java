@@ -1,6 +1,6 @@
 package fqlite.util;
 
-import fqlite.base.SqliteRow;
+import fqlite.base.SqliteInternalRow;
 
 /**
  * Container class. It is used to return some result from 
@@ -11,11 +11,11 @@ import fqlite.base.SqliteRow;
  */
 public class CarvingResult {
 
-	public SqliteRow row;
+	public SqliteInternalRow row;
 	public int rcursor;
 	public int offset; 
 	
-	public CarvingResult(int rcursor,int offset, SqliteRow result)
+	public CarvingResult(int rcursor,int offset, SqliteInternalRow result)
 	{
 		row = result;
 		this.rcursor = rcursor;

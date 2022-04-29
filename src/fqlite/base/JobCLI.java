@@ -12,7 +12,7 @@ public class JobCLI extends Job {
     }
     
     protected void linesReady() throws IOException {
-        String[] lines = getRows().stream().map(SqliteRow::toString).toArray(String[]::new);
+        String[] lines = getRows().stream().map(SqliteInternalRow::toString).toArray(String[]::new);
         // String[] lines = ll.toArray(new String[0]);
         writeResultsToFile(null, lines);
 

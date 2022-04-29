@@ -217,7 +217,7 @@ public class RecoveryTask extends Base implements Runnable {
 				}
 				last = celloff;
 					
-				SqliteRow row;
+				SqliteInternalRow row;
 				
 				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
 								
@@ -260,7 +260,7 @@ public class RecoveryTask extends Base implements Runnable {
                             /* create a new line for every data row */ 
                             while(entries>0)
                             {
-                                SqliteRow vrow = new SqliteRow();
+                                SqliteInternalRow vrow = new SqliteInternalRow();
                                 vrow.setTableName(tbln);
                                 vrow.setRecordType("VT");
                                 vrow.setOffset(0);
@@ -362,7 +362,7 @@ public class RecoveryTask extends Base implements Runnable {
 			if (ccrstart - buffer.position() > 3)
 			{
 				/* try to read record as usual */
-				SqliteRow row;
+				SqliteInternalRow row;
 				
 				/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 				/* We should read until the end of the unallocated area and not above! */

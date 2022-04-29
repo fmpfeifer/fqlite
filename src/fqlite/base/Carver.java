@@ -159,7 +159,7 @@ public class Carver extends Base {
 						continue;
 					}
 
-					SqliteRow row = res.row;
+					SqliteInternalRow row = res.row;
 
 					if (headertype > 1 && (res.rcursor + 4 <= toidx)) {
 						mat.region(res.rcursor + 4, toidx);

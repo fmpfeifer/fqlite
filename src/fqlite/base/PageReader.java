@@ -180,7 +180,7 @@ public class PageReader extends Base {
 		if (null == columns)
 			return null;
 
-		SqliteRow row = new SqliteRow();
+		SqliteInternalRow row = new SqliteInternalRow();
 		// String[] row = new String[columns.length]; // set to maximum page size
 		//int co = 0;
 		String fp = null;

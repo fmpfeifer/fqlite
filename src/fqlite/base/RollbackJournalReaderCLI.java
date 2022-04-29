@@ -48,7 +48,7 @@ public class RollbackJournalReaderCLI extends RollbackJournalReaderBase {
 
 		String filename = "results" + name + date + ".csv";
 		
-		String[] lines = output.stream().map(SqliteRow::toString).toArray(String[]::new);
+		String[] lines = output.stream().map(SqliteInternalRow::toString).toArray(String[]::new);
 		job.writeResultsToFile(filename, lines);	
 	}
 }

@@ -110,7 +110,7 @@ public abstract class WALReaderBase extends Base {
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
-	Queue<SqliteRow> output = new ConcurrentLinkedQueue<SqliteRow>();
+	Queue<SqliteInternalRow> output = new ConcurrentLinkedQueue<SqliteInternalRow>();
 	
 
 	/**
@@ -537,7 +537,7 @@ public abstract class WALReaderBase extends Base {
 			}
 			last = celloff;
 			
-			SqliteRow row = null;
+			SqliteInternalRow row = null;
 			
 
 			try { 
@@ -587,7 +587,7 @@ public abstract class WALReaderBase extends Base {
 
 						/* create a new line for every data row */
 						while (entries > 0) {
-							SqliteRow vrow = new SqliteRow();
+							SqliteInternalRow vrow = new SqliteInternalRow();
 							vrow.setTableName(tbln);
 							vrow.setRecordType("VT");
 							vrow.setOffset(0);
@@ -691,7 +691,7 @@ public abstract class WALReaderBase extends Base {
 		if (ccrstart - buffer.position() > 3)
 		{
 			/* try to read record as usual */
-			SqliteRow row;
+			SqliteInternalRow row;
 			
 			/* Tricky thing : data record could be partly overwritten with a new data record!!!  */
 			/* We should read until the end of the unallocated area and not above! */

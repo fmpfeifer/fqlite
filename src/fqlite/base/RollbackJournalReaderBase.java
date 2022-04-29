@@ -77,7 +77,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 	/* this is a multi-threaded program -> all data are saved to the list first */
 
 	/* outputlist */
-	protected Queue<SqliteRow> output = new ConcurrentLinkedQueue<SqliteRow>();
+	protected Queue<SqliteInternalRow> output = new ConcurrentLinkedQueue<SqliteInternalRow>();
 	
 	/* file pointer */
 	int journalpointer = 0;
@@ -374,7 +374,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 			}
 			last = celloff;
 			
-			SqliteRow row = null;
+			SqliteInternalRow row = null;
 
 			try {
 				row = ct.readRecord(celloff, buffer, pagenumber_maindb, visit, type, Integer.MAX_VALUE, firstcol, withoutROWID, journalpointer + 4);
@@ -418,7 +418,7 @@ public abstract class RollbackJournalReaderBase extends Base {
 
 						/* create a new line for every data row */
 						while (entries > 0) {
-							SqliteRow vrow = new SqliteRow();
+							SqliteInternalRow vrow = new SqliteInternalRow();
 							vrow.setTableName(tbln);
 							vrow.setRecordType("VT");
 							vrow.setOffset(0);

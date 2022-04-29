@@ -147,9 +147,9 @@ public class Job extends Base {
 	public Charset db_encoding = StandardCharsets.UTF_8;
 	
 	/* this is a multi-threaded program -> all data are saved to the list first*/
-	private Queue<SqliteRow> ll = new ConcurrentLinkedQueue<>();
+	private Queue<SqliteInternalRow> ll = new ConcurrentLinkedQueue<>();
 
-	private Map<String, List<SqliteRow>> tableRows = new LinkedHashMap<>();
+	private Map<String, List<SqliteInternalRow>> tableRows = new LinkedHashMap<>();
 	
 	private Auxiliary aux = new Auxiliary(this);
 	
@@ -913,7 +913,7 @@ public class Job extends Base {
 		}
 
 		for (Entry<String, TableDescriptor> tableEntry : headers.entrySet()) {
-		    List<SqliteRow> rows = tableRows.get(tableEntry.getKey());
+		    List<SqliteInternalRow> rows = tableRows.get(tableEntry.getKey());
 		    if (null != rows) {
 		        Map<String, Integer> colIdx = new HashMap<>();
 		        int id = 0;
@@ -921,7 +921,7 @@ public class Job extends Base {
 		            colIdx.put(col, id++);
 		        }
 
-		        for (SqliteRow row : rows) {
+		        for (SqliteInternalRow row : rows) {
 		            row.setColumnNamesMap(colIdx);
 		        }
 		    }
@@ -1381,7 +1381,7 @@ public class Job extends Base {
 
     }
 
-    public synchronized void addRow(SqliteRow row) {
+    public synchronized void addRow(SqliteInternalRow row) {
 		if (recoverOnlyDeletedRecords) {
 			// only add rows that are marked as deleted
 			if (!row.isDeletedRow()) {
@@ -1389,7 +1389,7 @@ public class Job extends Base {
 			}
 		}
         ll.add(row);
-        List<SqliteRow> tables = tableRows.get(row.getTableName());
+        List<SqliteInternalRow> tables = tableRows.get(row.getTableName());
         if (null == tables) {
             tables = Collections.synchronizedList(new ArrayList<>());
             tableRows.put(row.getTableName(), tables);
@@ -1397,11 +1397,11 @@ public class Job extends Base {
         tables.add(row);
     }
 
-    public Queue<SqliteRow> getRows() {
+    public Queue<SqliteInternalRow> getRows() {
         return ll;
     }
 
-    public synchronized List<SqliteRow> getRowsForTable(String tableName) {
+    public synchronized List<SqliteInternalRow> getRowsForTable(String tableName) {
         return tableRows.getOrDefault(tableName, Collections.emptyList());
     }
 

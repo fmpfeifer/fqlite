@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SqliteRow {
+public class SqliteInternalRow {
     private List<SqliteElementData> rowData = new ArrayList<>();
     private long offset = 0L;
     private String tableName = "";

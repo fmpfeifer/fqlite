@@ -14,7 +14,7 @@ import fqlite.base.Global;
 import fqlite.base.Job;
 import fqlite.base.SqliteElement;
 import fqlite.base.SqliteElementData;
-import fqlite.base.SqliteRow;
+import fqlite.base.SqliteInternalRow;
 import fqlite.descriptor.IndexDescriptor;
 import fqlite.descriptor.TableDescriptor;
 import fqlite.pattern.HeaderPattern;
@@ -205,7 +205,7 @@ public class Auxiliary extends Base {
 		if (null == columns)
 			return null;
 
-		SqliteRow row = new SqliteRow();
+		SqliteInternalRow row = new SqliteInternalRow();
 		//int co = 0;
 		String fp = null;
 		try {
@@ -375,7 +375,7 @@ public class Auxiliary extends Base {
 	 * @throws IOException if an error occurs
 	 * 
 	 **/
-	public SqliteRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
+	public SqliteInternalRow readRecord(int cellstart, ByteBuffer buffer, int pagenumber_db, BitSet bs, int pagetype,
 			int maxlength, StringBuffer firstcol, boolean withoutROWID, int filepointer) throws IOException {
 
 		boolean unkown = false;
@@ -383,7 +383,7 @@ public class Auxiliary extends Base {
 		buffer.position(0);
 
 		// prepare the string for the return value
-		SqliteRow row = new SqliteRow();
+		SqliteInternalRow row = new SqliteInternalRow();
 
 		/* For WAL and ROL files the values is always greater than 0 */
 		if (filepointer > 0) {
