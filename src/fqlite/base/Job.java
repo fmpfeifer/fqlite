@@ -961,10 +961,15 @@ public class Job extends Base {
             /* search as long as we can find further table keywords */
             while (index != -1) {
                 /* get Header */
-                byte mheader[] = new byte[40];
                 bb.position(index - goback - 3);
+                int hsize = Math.min(40, (int) (bb.size() - bb.position()));
+                if (hsize < 20) {
+                    break;
+                }
+                byte mheader[] = new byte[hsize];
+
                 bb.get(mheader);
-                
+
                 int [] valData = aux.validateIntactMasterTableHeader(mheader, goback + 3 - 5);
                 int headerStart = valData[0];
                 int headerSize = valData[1];
