@@ -1218,13 +1218,19 @@ public class Auxiliary extends Base {
 
 	}
 
+	private static byte[] HEX_DIGITS = "0123456789abcdef".getBytes();
 	/**
      * Converts a byte array to Hex-String. 
      * @param bytes Bytes
      * @return String with hex representation of bytes
      */
 	public static String bytesToHex(byte[] bytes) {
-		return bytesToHex(bytes, 0, bytes.length);
+		byte [] hexBytes = new byte[bytes.length * 2];
+		for (int i = 0; i < bytes.length; i++) {
+		    hexBytes[i*2] = HEX_DIGITS[(bytes[i] & 0xff) >> 4];
+		    hexBytes[i*2 + 1] = HEX_DIGITS[bytes[i] & 0x0f];
+		}
+		return new String(hexBytes);
 	}
 
 	/**
@@ -1276,8 +1282,12 @@ public class Auxiliary extends Base {
      * @return String with hex representation of bytes
      */
 	public static String bytesToHex(byte[] bytes, int fromidx, int toidx) {
-	    ByteBuffer buffer = ByteBuffer.wrap(bytes, fromidx, toidx-fromidx);
-	    return bytesToHex(buffer);
+	    byte [] hexBytes = new byte[(toidx-fromidx) * 2];
+        for (int i = fromidx; i < toidx; i++) {
+            hexBytes[(i-fromidx)*2] = HEX_DIGITS[(bytes[i] & 0xff) >> 4];
+            hexBytes[(i-fromidx)*2 + 1] = HEX_DIGITS[bytes[i] & 0x0f];
+        }
+        return new String(hexBytes);
 	}
 
 	
