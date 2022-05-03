@@ -151,6 +151,8 @@ public class Job extends Base {
 
 	private Map<String, List<SqliteRow>> tableRows = new LinkedHashMap<>();
 	
+	private Map<String, Map<String, Integer>> colIdxMaps = new HashMap<>();
+	
 	private Auxiliary aux = new Auxiliary(this);
 	
 	/* header fields */
@@ -214,6 +216,8 @@ public class Job extends Base {
 	public boolean recoverOnlyDeletedRecords = false;
 
 	public SQLiteSchemaParser schemaParser = new SQLiteSchemaParser();
+	
+	private Object lock = new Object();
 
 	  
 	/******************************************************************************************************/
@@ -915,22 +919,22 @@ public class Job extends Base {
 		return 0;
 	}
 	
-	private Map<String, Map<String, Integer>> colIdxMaps = new HashMap<>();
-	
 	private Map<String, Integer> getColIdxMapForTable(String tableName) {
-	    Map<String, Integer> colIdxMap = colIdxMaps.get(tableName);
-	    if (colIdxMap == null) {
-	        TableDescriptor td = headers.get(tableName);
-	        if (td != null) {
-	            colIdxMap = new HashMap<>();
-	            int id = 0;
-	            for (String col: td.columnnames) {
-	                colIdxMap.put(col, id++);
-	            }
-	            colIdxMaps.put(tableName, colIdxMap);
-	        }
-	    }
+	    synchronized (lock) {
+    	    Map<String, Integer> colIdxMap = colIdxMaps.get(tableName);
+    	    if (colIdxMap == null) {
+    	        TableDescriptor td = headers.get(tableName);
+    	        if (td != null) {
+    	            colIdxMap = new HashMap<>();
+    	            int id = 0;
+    	            for (String col: td.columnnames) {
+    	                colIdxMap.put(col, id++);
+    	            }
+    	            colIdxMaps.put(tableName, colIdxMap);
+    	        }
+    	    }
 	    return colIdxMap;
+	    }
 	}
 
 	protected void closeResources() {
@@ -1383,7 +1387,7 @@ public class Job extends Base {
 
     }
 
-    public synchronized void addRow(SqliteInternalRow row) {
+    public void addRow(SqliteInternalRow row) {
         row.setColumnNamesMap(getColIdxMapForTable(row.getTableName()));
 		if (recoverOnlyDeletedRecords) {
 			// only add rows that are marked as deleted
@@ -1393,26 +1397,32 @@ public class Job extends Base {
 		}
 		if (collectInternalRows)
 		    ll.add(row);
-        List<SqliteRow> tables = tableRows.get(row.getTableName());
-        if (null == tables) {
-            tables = Collections.synchronizedList(new ArrayList<>());
-            tableRows.put(row.getTableName(), tables);
-        }
-        SqliteRow decoded = row.decodeRow();
-        decoded.setCharset(db_encoding);
-        tables.add(row.decodeRow());
+		synchronized (lock) {
+            List<SqliteRow> tables = tableRows.get(row.getTableName());
+            if (null == tables) {
+                tables = new ArrayList<>();
+                tableRows.put(row.getTableName(), tables);
+            }
+            SqliteRow decoded = row.decodeRow();
+            decoded.setCharset(db_encoding);
+            tables.add(row.decodeRow());
+		}
     }
 
     public Queue<SqliteInternalRow> getRows() {
         return ll;
     }
 
-    public synchronized List<SqliteRow> getRowsForTable(String tableName) {
-        return tableRows.getOrDefault(tableName, Collections.emptyList());
+    public List<SqliteRow> getRowsForTable(String tableName) {
+        synchronized (lock) {
+            return tableRows.getOrDefault(tableName, Collections.emptyList());
+        }
     }
 
     public synchronized Set<String> getTablesNames() {
-        return tableRows.keySet();
+        synchronized (lock) {
+            return tableRows.keySet();
+        }
     }
     
     private interface BTreePageVisitor {
