@@ -336,6 +336,9 @@ public abstract class WALReaderBase extends Base {
 	
 			/* read the db page into buffer */
 			buffer = readPage();
+			if (buffer == null) {
+			    break;
+			}
 	
 			numberofpages++;
 			pagenumber_wal = numberofpages;

@@ -100,12 +100,12 @@ public class SQLiteSchemaParser {
 		if (sql.contains("CREATE TABLE"))
 		{
 			TableDescriptor tds = p.parseCREATETABLEStatement(sql);
-		
-			/* save link to this component object within the virtual component list */
-			if(tds.isVirtual())
-				job.virtualTables.put(tds.tblname,tds);
 				
 			if (null != tds) {
+			    /* save link to this component object within the virtual component list */
+	            if (tds.isVirtual())
+	                job.virtualTables.put(tds.tblname, tds);
+	            
 				Logger.out.debug(tds.getStandardPattern().toString());
 				tds.tblname = tablename;
 				tds.ROWID = rowid;  // this flag indicates weather there is a ROWID or not 
@@ -121,7 +121,7 @@ public class SQLiteSchemaParser {
 		{
 			IndexDescriptor ids = p.parseCREATEIndexStatement(sql);
 			
-			if (null == ids.getName())
+			if (null == ids || null == ids.getName())
 				return;
 			if (!job.indices.containsKey(ids.getName()))
 			{	

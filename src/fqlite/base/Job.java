@@ -283,6 +283,9 @@ public class Job extends Base {
 
 			/* read header of the sqlite db - the first 100 bytes */
 			ByteBuffer buffer = file.allocateAndReadBuffer(100);
+			if (buffer == null) {
+			    return -1;
+			}
 
 			/* The first 100 bytes of the database file comprise the database file header. 
 			 * The database file header is divided into fields as shown by the table below. 
@@ -787,6 +790,9 @@ public class Job extends Base {
 				do {
 					/* reserve space for the first/next page of the free list */
 					ByteBuffer fplist = file.allocateAndReadBuffer(start, ps);
+					if (fplist == null) {
+					    break;
+					}
 
 					// next (possible) freepage list offset or 0xh00000000 + number of entries
 					// example : 00 00 15 3C | 00 00 02 2B
@@ -967,19 +973,24 @@ public class Job extends Base {
                     // compute offset
                     int starthere = (int)(index % ps) - goback + headerStart - 3;
 
-                    ByteBuffer bbb = null;
-                    if (round == 1) {
-                        if (isSinglePage) {
-                            bbb = bb.allocateAndReadBuffer(0, ps);
+                    if (starthere >= 0) {
+                        ByteBuffer bbb = null;
+                        if (round == 1) {
+                            if (isSinglePage) {
+                                bbb = bb.allocateAndReadBuffer(0, ps);
+                            } else {
+                                int pagenumber = (int)(index / ps);
+                                bbb = readPageWithNumber(pagenumber, ps);
+                            }
                         } else {
-                            int pagenumber = (int)(index / ps);
-                            bbb = readPageWithNumber(pagenumber, ps);
+                            starthere = (int) ((index - 32) % (ps + 24)) - goback + headerStart - 3;
+                            bbb = bb.allocateAndReadBuffer(32 + 24 + index/ps, ps);
                         }
-                    } else {
-                        starthere = (int) ((index - 32) % (ps + 24)) - goback + headerStart - 3;
-                        bbb = bb.allocateAndReadBuffer(32 + 24 + index/ps, ps);
+                        if (bbb == null) {
+                            break;
+                        }
+                        aux.readMasterTableRecord(starthere, bbb, headerSize);
                     }
-                    aux.readMasterTableRecord(starthere, bbb, headerSize);
                 } else {
                     valData = aux.validateOverwrittenMasterTableHeader(mheader, goback + 3 - 5);
                     headerStart = valData[0];
@@ -987,42 +998,47 @@ public class Job extends Base {
                     if (headerStart != Integer.MIN_VALUE) {                         
                         headerStart += 1;
                         int starthere = (int) (index % ps) - goback - headerStart - 3;
-
-                        ByteBuffer bbb = null;
-                        /* first try to read the db schema from the main db file */
-                        if (round == 1)
-                        {
-                            if (isSinglePage) {
-                                bbb = bb.allocateAndReadBuffer(0, ps);
-                            } else {
-                                int pagenumber = (int) (index / ps);
-                                bbb = readPageWithNumber(pagenumber, ps);
-                            }
-                        }
-                        /* No schema was found? Try reading the WAL file instead */
-                        else
-                        {
-                            long pagebegin = 0;
-                            // first page ?
-                            if (index < (ps + 56))
+                        
+                        if (starthere >= 0) {
+                            ByteBuffer bbb = null;
+                            /* first try to read the db schema from the main db file */
+                            if (round == 1)
                             {
-                                // skip WAL header (32 Bytes) and frame header (24 Bytes)
-                                pagebegin = 56;
-                                starthere  = (int) (index - 56)  - goback - headerStart - 3;
+                                if (isSinglePage) {
+                                    bbb = bb.allocateAndReadBuffer(0, ps);
+                                } else {
+                                    int pagenumber = (int) (index / ps);
+                                    bbb = readPageWithNumber(pagenumber, ps);
+                                }
                             }
+                            /* No schema was found? Try reading the WAL file instead */
                             else
                             {
-                                pagebegin = ((index - 32) / (ps + 24)) * (ps + 24) - 24 + 32;      //32 + (ps+24)*index/(ps+24) + 24;
-                                starthere = (int) ((index - 32) % (ps + 24) + 24)  - goback - headerStart - 3;
+                                long pagebegin = 0;
+                                // first page ?
+                                if (index < (ps + 56))
+                                {
+                                    // skip WAL header (32 Bytes) and frame header (24 Bytes)
+                                    pagebegin = 56;
+                                    starthere  = (int) (index - 56)  - goback - headerStart - 3;
+                                }
+                                else
+                                {
+                                    pagebegin = ((index - 32) / (ps + 24)) * (ps + 24) - 24 + 32;      //32 + (ps+24)*index/(ps+24) + 24;
+                                    starthere = (int) ((index - 32) % (ps + 24) + 24)  - goback - headerStart - 3;
+                                }
+                                
+                                /* go to frame start */
+                                bbb = file.allocateAndReadBuffer(pagebegin, ps);
+                                
+                            }
+                            if (bbb == null) {
+                                break;
                             }
                             
-                            /* go to frame start */
-                            bbb = file.allocateAndReadBuffer(pagebegin, ps);
-                            
+                            /* start reading the schema string from the correct position */
+                            aux.readMasterTableRecord(starthere, bbb, headerSize);
                         }
-                        
-                        /* start reading the schema string from the correct position */
-                        aux.readMasterTableRecord(starthere, bbb, headerSize);
                     }
                 }
                 /* search for more component entries */
@@ -1271,6 +1287,9 @@ public class Job extends Base {
             /* read the complete internal page into buffer */
             //System.out.println(" read internal page at offset " + ((root-1)*ps));
             ByteBuffer buffer = readPageWithNumber(pageNumber - 1, ps);
+            if (buffer == null) {
+                return;
+            }
 
             byte[] numberofcells = new byte[2];
             buffer.position(pageHeaderOffset + 3);
@@ -1305,8 +1324,10 @@ public class Job extends Base {
             
             ByteBuffer rightChildptr = file.allocateAndReadBuffer(fileOffset + pageHeaderOffset + 8, 4);
             
-            /* recursive */
-            exploreBTree(rightChildptr.getInt(), visitor);
+            if (rightChildptr != null) {
+                /* recursive */
+                exploreBTree(rightChildptr.getInt(), visitor);
+            }
 
         } 
         else if (typ == 8 || typ == 10) {

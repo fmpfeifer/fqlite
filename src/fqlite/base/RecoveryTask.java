@@ -77,6 +77,9 @@ public class RecoveryTask extends Base implements Runnable {
 			debug("Offset in recover()::", offset);
 			/* read the db page into buffer */
 			buffer = job.readPageWithOffset(offset, pagesize);
+			if (buffer == null) {
+			    return -1;
+			}
 			byte pageType = buffer.get();
 
 			// offset 0
@@ -217,9 +220,11 @@ public class RecoveryTask extends Base implements Runnable {
 				}
 				last = celloff;
 					
-				SqliteInternalRow row;
+				SqliteInternalRow row = null;
 				
-				row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
+				if (celloff < buffer.limit() - 20) {
+				    row = ct.readRecord(celloff, buffer, pagenumber, visit, type, Integer.MAX_VALUE, firstcol,withoutROWID,-1);
+				}
 								
 				// add new line to output
 				if (null != row) {

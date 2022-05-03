@@ -34,6 +34,9 @@ public class RandomAccessFileReader extends LongPositionByteBuffer {
     }
 
     public long position(long newPosition) throws IOException {
+        if (newPosition > size) {
+            throw new BufferUnderflowException();
+        }
         synchronized (lock) {
             long oldPosition = position;
             position = newPosition;
