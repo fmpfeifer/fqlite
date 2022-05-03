@@ -490,7 +490,10 @@ public class Auxiliary extends Base {
 			return null;
 
 		int pp = buffer.position();
-		String hh = getHeaderString(phl, buffer);
+		String hh = "";
+		if (job.collectInternalRows) {
+		    hh = getHeaderString(phl, buffer);
+		}
 		buffer.position(pp);
 		
 		columns = getColumns(phl, buffer, firstcol);
@@ -708,7 +711,9 @@ public class Auxiliary extends Base {
 		}
 
 		/* append header match string at the end */
-		row.setLineSuffix("##header##" + hh);
+		if (job.collectInternalRows) {
+		    row.setLineSuffix("##header##" + hh);
+		}
 
 		//lineUTF.append("\n");
 
