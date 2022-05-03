@@ -973,10 +973,10 @@ public class Auxiliary extends Base {
 			return null;
 		}
 
-		String sheader = bytesToHex(header);
+		String sheader = byteToHex(header[0]);
 
 		if (sheader.length() > 1) {
-			firstcol.insert(0, sheader.substring(0, 2));
+			firstcol.insert(0, sheader);
 		}
 		// System.out.println("getColumns():: + Header: " + sheader);
 
