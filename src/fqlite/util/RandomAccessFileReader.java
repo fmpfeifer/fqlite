@@ -64,6 +64,9 @@ public class RandomAccessFileReader extends LongPositionByteBuffer {
             position(position);
             while (length > 0) {
                 int toRead = Math.min(length, buffer.remaining());
+                if (toRead == 0) {
+                    throw new BufferUnderflowException();
+                }
                 buffer.get(dst, offset, toRead);
                 position(position + toRead);
                 offset += toRead;
